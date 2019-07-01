@@ -1,17 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import sklearn
 import pandas as pd
-from tqdm import tqdm_notebook as tqdm
-import seaborn as sns
-get_ipython().run_line_magic("matplotlib", "inline")
-from itertools import *
-from collections import *
+from tqdm import tqdm
 from random import *
 
 class GuideEnv:
-    def __init__(self, files=['hela.csv', 'hek293t.csv', 'hct116.csv', 'hl60.csv'], 
-                     batch=1000, validation=0.2, initial=0.0):
+    def __init__(self, files, batch=1000, validation=0.2, initial=0.0):
         dfs = list(map(pd.read_csv, files))
         data = [(strand + seq, score) for df in dfs
             for _, strand, seq, score in 

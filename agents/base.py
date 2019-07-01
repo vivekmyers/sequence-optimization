@@ -1,10 +1,14 @@
+import numpy as np
+from random import *
+
 class BaseAgent:
     def __init__(self, prior, length, batch):
         self.seen = prior
         self.batch = batch
         self.encode_cache = {}
         self.embed_cache = {}
-        self.proj = np.random.normal(size=[4, length * 4])
+        self.len = length
+        self.proj = np.random.normal(size=[6, length * 4])
         
     def encode(self, seq):
         if seq in self.encode_cache:
