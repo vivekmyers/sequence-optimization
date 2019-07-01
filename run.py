@@ -7,10 +7,11 @@ import numpy as np
 sns.set_style('darkgrid')
 
 files = [f for f in os.listdir('agents') if f.endswith('.py')]
+mods = {}
 
 for f in files :
     mod = importlib.import_module('agents.' + f[:-3])
-    globals().update(mod.__dict__)
+    mods.update(mod.__dict__)
 
 parser = argparse.ArgumentParser(description='Run flags')
 parser.add_argument('--agents', nargs='*', type=str, help='Agent class to use')
@@ -26,17 +27,17 @@ env = env.GuideEnv(batch=args.batch, initial=args.initial, validation=args.valid
 for agent in args.agents:
     print()
     print(f'Running {agent}...')
-    results = env.run(eval(agent))
+    results = env.run(eval(agent, mods, {}))
     print(f'Saving to results/{agent}...')
     plt.figure()
-    plt.title(f'{agent}, Batch {args.batch}')
+    plt.title(f'{agent}, batch={args.batch}')
     plt.xlabel('Batch')
     plt.ylabel('Correlation')
     plt.plot(results)
     try: os.mkdir(f'results/{agent}')
     except OSError: pass
-    plt.savefig(f'results/{agent}/{agent}-{args.batch}.png')
-    np.save(f'results/{agent}/{agent}-{args.batch}.npy', results)
+    plt.savefig(f'results/{agent}/{agent}-batch={args.batch}.png')
+    np.save(f'results/{agent}/{agent}-batch={args.batch}.npy', results)
     print()
 
 
