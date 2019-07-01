@@ -8,9 +8,8 @@ class GreedyAgent(agents.base.BaseAgent):
         super().__init__(*args)
         self.model = CNN(shape=[self.len, 4])
     
-    def act(self, data):
-        pred = self.predict(data)
-        return list(zip(*sorted(zip(pred, data)[-self.batch:])))[1]
+    def act(self, seqs):
+        return list(zip(*sorted(zip(self.predict(seqs), seqs))[-self.batch:]))[1]
 
     def observe(self, data):
         super().observe(data)

@@ -34,6 +34,4 @@ class BaseAgent:
         self.seen = {**self.seen, **obs}
     
     def predict(self, seqs):
-        return [self.seen[min(sample(self.seen.keys(), self.batch), 
-                    key=lambda x: np.linalg.norm(self.embed(x) - self.embed(seq).flatten()))] 
-                    for seq in seqs]
+        return [np.array(list(self.seen.values())).mean()] * len(seqs)

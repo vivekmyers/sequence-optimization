@@ -30,6 +30,8 @@ for agent in args.agents:
     print(f'Saving to results/{agent}...')
     plt.figure()
     plt.title(f'{agent}, Batch {args.batch}')
+    plt.xlabel('Batch')
+    plt.ylabel('Correlation')
     plt.plot(results)
     try: os.mkdir(f'results/{agent}')
     except OSError: pass
@@ -38,4 +40,3 @@ for agent in args.agents:
     print()
 
 
-results = env.run(agent)
