@@ -3,6 +3,6 @@
 
 # Usage
 Any agent in the agents directory can be tested:
-`python run.py --agents [Agent1 Agent2 ...] --batch [batchsz]
+`python run.py --agents [Agent1 Agent2 ...] --batch [batchsize]`
 
-e.g. `python run.py --agents GreedyAgent --batch 1000`
+e.g. `python run.py --agents BaseAgent 'GreedyAgent(epochs=10)' --batch 1000`

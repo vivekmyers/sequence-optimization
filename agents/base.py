@@ -34,4 +34,4 @@ class BaseAgent:
         self.seen = {**self.seen, **obs}
     
     def predict(self, seqs):
-        return [np.array(list(self.seen.values())).mean()] * len(seqs)
+        return [choice(list(self.seen.values())) for _ in seqs]
