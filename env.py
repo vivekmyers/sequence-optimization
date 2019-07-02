@@ -4,7 +4,19 @@ from tqdm import tqdm
 from random import *
 
 class GuideEnv:
+    '''
+    Stores labeled sequences, reserving some for validation, and runs agents on them.
+    '''
+
     def __init__(self, files, batch=1000, validation=0.2, initial=0.0):
+        '''
+        files: csv files to read data from
+        batch: number of sequences selected per action
+        validation: portion of sequences to save for validation
+        initial: portion of sequences given to each agent on construction
+        '''
+        assert 0 <= validation < 1
+        assert 0 <= initial < 1
         dfs = list(map(pd.read_csv, files))
         data = [(strand + seq, score) for df in dfs
             for _, strand, seq, score in 
@@ -12,16 +24,29 @@ class GuideEnv:
         self.len = len(data[0][0])
         shuffle(data)
         r = int(validation * len(data))
-        self.env = dict(data[r:])
+        self.env = data[r:]
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.prior = dict(sample(self.env.items(), int(initial * len(data))))
+        # start agent with some portion of initial sequences
+        r = int(initial * len(self.env))
+        self.prior = dict(self.env[:r])
+        self.env = dict(self.env[r:])
         self.batch = batch
+        assert batch < len(self.env)
         
     def run(self, Agent):
-        agent = Agent(self.prior.copy(), self.len, self.batch)
+        '''
+        Run agent, getting batch-sized list of actions (sequences) to try,
+        and calling observe with the labeled sequences until all sequences
+        have been tried. Returns the validation performance after each batch
+        (measured with the agent's predict method on validation data).
+        '''
         data = self.env.copy()
+        pbar = tqdm(total=len(data) // self.batch * self.batch + len(self.prior) + 1)
+        agent = Agent(self.prior.copy(), self.len, self.batch)
         results = []
-        pbar = tqdm(total=len(data) // self.batch * self.batch)
+        predicted = np.array(agent.predict(self.val[0].copy()))
+        results.append(np.corrcoef(predicted, self.val[1])[0, 1])
+        pbar.update(len(self.prior))
         while len(data) > self.batch:
             sampled = agent.act(list(data.keys()))
             agent.observe({seq: data[seq] for seq in sampled})

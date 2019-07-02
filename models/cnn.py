@@ -7,6 +7,10 @@ import keras.backend as K
 from keras.callbacks import History
 
 class CNN(Sequential):
+    '''
+    CNN with regularization for making simple sequence score predictions.
+    '''
+
     def make_net(self, alpha, opt, shape):
         self.add(Conv1D(64, kernel_size=7,
                            activation='relu',
@@ -25,9 +29,13 @@ class CNN(Sequential):
         K.set_value(self.optimizer.lr, alpha)
     
     def encode(self, seq):
+        '''
+        Encode a sequence as a series of one hot 4-vectors
+        '''
+
         if seq in self.encode_cache:
             return self.encode_cache[seq]
-        assert seq[0] in '+-'
+        assert seq[0] in '+-' # encode strand direction by making first one-hot vector all 1s or 0s
         arr = np.zeros([len(seq), 4])
         arr[0, :] = 1 if seq[0] == '-' else 0
         arr[(np.arange(1, len(seq)), ['ATCG'.index(i) for i in seq[1:]])] = 1
