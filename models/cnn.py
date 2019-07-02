@@ -32,7 +32,6 @@ class CNN(Sequential):
         '''
         Encode a sequence as a series of one hot 4-vectors
         '''
-
         if seq in self.encode_cache:
             return self.encode_cache[seq]
         assert seq[0] in '+-' # encode strand direction by making first one-hot vector all 1s or 0s

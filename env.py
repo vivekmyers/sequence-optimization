@@ -41,7 +41,7 @@ class GuideEnv:
         (measured with the agent's predict method on validation data).
         '''
         data = self.env.copy()
-        pbar = tqdm(total=len(data) // self.batch * self.batch + len(self.prior) + 1)
+        pbar = tqdm(total=len(data) // self.batch * self.batch + len(self.prior))
         agent = Agent(self.prior.copy(), self.len, self.batch)
         results = []
         predicted = np.array(agent.predict(self.val[0].copy()))
