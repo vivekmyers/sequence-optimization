@@ -1,10 +1,17 @@
-from keras.layers import *
-from keras.models import *
 import numpy as np
 from random import *
+import os, sys
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+stderr = sys.stderr
+sys.stderr = open('/dev/null', 'w')
+from keras.layers import *
+from keras.models import *
 import keras.backend as K
 from keras.callbacks import History
+sys.stderr = stderr
+
 
 class CNN(Sequential):
     '''

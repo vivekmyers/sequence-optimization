@@ -5,20 +5,9 @@ import matplotlib.pyplot as plt
 import importlib
 import numpy as np
 sns.set_style('darkgrid')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 if __name__ == '__main__':
-
-    # Load agent modules
-    files = [f for f in os.listdir('agents') if f.endswith('.py')]
-    mods = {}
-
-    for f in files :
-        mod = importlib.import_module('agents.' + f[:-3])
-        mods.update(mod.__dict__)
 
     # Parse environment parameters
     parser = argparse.ArgumentParser(description='Run flags')
@@ -33,9 +22,18 @@ if __name__ == '__main__':
     env = env.GuideEnv(batch=args.batch, initial=args.initial, validation=args.validation,
             files=[f'data/{f}' for f in os.listdir('data') if f.endswith('.csv')])
 
-    collected = []
+    # Load agent modules
+    files = [f for f in os.listdir('agents') if f.endswith('.py')]
+    mods = {}
+
+    for f in files :
+        mod = importlib.import_module('agents.' + f[:-3])
+        mods.update(mod.__dict__)
+
 
     # Run agents
+    collected = []
+
     for agent in args.agents:
         print()
         print(f'Running {agent}...')
@@ -58,7 +56,7 @@ if __name__ == '__main__':
             results=results))
         print()
 
-    # If collecting, make one gaph
+    # If collecting, make one graph
     if args.collect:
         loc = ",".join(args.agents)
         try: os.mkdir(f'results/{loc}')

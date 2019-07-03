@@ -1,7 +1,7 @@
 import numpy as np
 from random import *
-from models.cnn import CNN
 import agents.base
+from models.cnn import CNN
 
 def GreedyAgent(epochs=10, initial_epochs=20):
     '''
