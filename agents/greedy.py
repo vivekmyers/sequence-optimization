@@ -12,7 +12,7 @@ def GreedyAgent(epochs=10, initial_epochs=20):
     class Agent(agents.base.BaseAgent):
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = CNN(shape=[self.len, 4])
+            self.model = CNN(encoder=self.encode, shape=[self.len, 4])
             self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, verbose=0)
         
         def act(self, seqs):

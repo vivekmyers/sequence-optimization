@@ -27,19 +27,7 @@ class CNN(Sequential):
                     optimizer=opt,
                     metrics=['accuracy'])
         K.set_value(self.optimizer.lr, alpha)
-    
-    def encode(self, seq):
-        '''
-        Encode a sequence as a series of one hot 4-vectors
-        '''
-        if seq in self.encode_cache:
-            return self.encode_cache[seq]
-        assert seq[0] in '+-' # encode strand direction by making first one-hot vector all 1s or 0s
-        arr = np.zeros([len(seq), 4])
-        arr[0, :] = 1 if seq[0] == '-' else 0
-        arr[(np.arange(1, len(seq)), ['ATCG'.index(i) for i in seq[1:]])] = 1
-        self.encode_cache[seq] = arr
-        return arr
+
 
     def fit(self, seqs, scores, val=([], []), epochs=1, verbose=2):
         x_val, y_val = val
@@ -56,8 +44,9 @@ class CNN(Sequential):
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, alpha=1e-4, shape=()):
+    def __init__(self, encoder, alpha=1e-4, shape=()):
         super().__init__()
+        self.encode = encoder
         self.history = History()
         self.encode_cache = {}
         self.current_epoch = 0

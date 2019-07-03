@@ -4,4 +4,5 @@ pandas
 seaborn
 tensorflow-gpu
 keras
+torch
 tqdm
