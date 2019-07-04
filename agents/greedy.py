@@ -4,12 +4,11 @@ import agents.base
 from models.cnn import CNN
 
 def GreedyAgent(epochs=10, initial_epochs=20):
-    '''
-    Constructs agent with CNN to predict sequence values that trains with each observation.
+    '''Constructs agent with CNN to predict sequence values that trains with each observation.
     Greedily selects sequences with best predicions.
     '''
-
     class Agent(agents.base.BaseAgent):
+
         def __init__(self, *args):
             super().__init__(*args)
             self.model = CNN(encoder=self.encode, shape=[self.len, 4])

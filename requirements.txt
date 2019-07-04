@@ -2,7 +2,7 @@ numpy
 matplotlib
 pandas
 seaborn
+tqdm
 tensorflow-gpu
 keras
 torch
-tqdm

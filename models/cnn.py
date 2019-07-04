@@ -14,9 +14,7 @@ sys.stderr = stderr
 
 
 class CNN(Sequential):
-    '''
-    CNN with regularization for making simple sequence score predictions.
-    '''
+    '''CNN with regularization for making simple sequence score predictions.'''
 
     def make_net(self, alpha, opt, shape):
         self.add(Conv1D(64, kernel_size=7,
