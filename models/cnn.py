@@ -56,3 +56,4 @@ class CNN(Sequential):
         self.current_epoch = 0
         self.alpha = alpha
         self.make_net(alpha, 'adam', shape)
+

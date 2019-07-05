@@ -110,7 +110,7 @@ class BayesianCNN:
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, encoder, alpha=1e-3, shape=(), sig_scale=0.5):
+    def __init__(self, encoder, alpha=1e-4, shape=(), sig_scale=0.5):
         '''Takes sequence encoding function, step size, sequence shape, and scaling 
         of initial weight stdevs.
         '''
@@ -122,7 +122,7 @@ class BayesianCNN:
             self.device = 'cpu'
         self.alpha = alpha
         self.encode = encoder
-        self._eps = 1e-6
+        self._eps = 1e-8
         self._process = lambda x: torch.tensor(np.array(x), requires_grad=True).to(self.device)
         self._make_net(shape, sig_scale)
         self.opt = torch.optim.Adam(self.mu + self.rho, lr=self.alpha)

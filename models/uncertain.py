@@ -99,6 +99,7 @@ class UncertainCNN:
         self.alpha = alpha
         self._process = lambda x: torch.tensor(np.array(x), requires_grad=True).to(self.device)
         self._make_net(shape)
-        self._eps = 1e-6
+        self._eps = 1e-8
         self.encode = encoder
         self.opt = torch.optim.Adam(self.model.parameters(), lr=self.alpha)
+

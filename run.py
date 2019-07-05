@@ -83,5 +83,3 @@ if __name__ == '__main__':
                     [(datum, agent) for agent, _, datum in collected],
                     f'{loc}/{loc}-batch={args.batch}-top10')
 
-
-

@@ -60,4 +60,3 @@ class GuideEnv:
         pbar.close()
         return np.array(corrs), np.array(top10)
     
-

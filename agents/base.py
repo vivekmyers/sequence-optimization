@@ -40,3 +40,4 @@ class BaseAgent:
     def predict(self, seqs):
         '''Predict sequence scores.'''
         return [choice(list(self.seen.values())) for _ in seqs]
+
