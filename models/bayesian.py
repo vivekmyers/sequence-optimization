@@ -122,7 +122,7 @@ class BayesianCNN:
             self.device = 'cpu'
         self.alpha = alpha
         self.encode = encoder
-        self._eps = 1e-8
+        self._eps = 1e-6
         self._process = lambda x: torch.tensor(np.array(x), requires_grad=True).to(self.device)
         self._make_net(shape, sig_scale)
         self.opt = torch.optim.Adam(self.mu + self.rho, lr=self.alpha)
