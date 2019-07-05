@@ -53,7 +53,6 @@ class CNN(Sequential):
         super().__init__()
         self.encode = encoder
         self.history = History()
-        self.encode_cache = {}
         self.current_epoch = 0
         self.alpha = alpha
         self.make_net(alpha, 'adam', shape)
