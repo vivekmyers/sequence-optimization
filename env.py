@@ -46,6 +46,8 @@ class GuideEnv:
         top10 = []
         predicted = np.array(agent.predict(self.val[0].copy()))
         corrs.append(np.corrcoef(predicted, self.val[1])[0, 1])
+        top10.append(np.array([x[1] 
+                        for x in sorted(zip(predicted, self.val[1]))[-10:]]).mean())
         pbar.update(len(self.prior))
         while len(data) > self.batch:
             sampled = agent.act(list(data.keys()))
