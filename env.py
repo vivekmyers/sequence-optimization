@@ -35,29 +35,29 @@ class GuideEnv:
         '''Run agent, getting batch-sized list of actions (sequences) to try,
         and calling observe with the labeled sequences until all sequences
         have been tried. Returns the validation performance after each batch
-        (measured with the agent's predict method on validation data), as well
-        as the average performance of the best 10 validation guides chosen
-        after each batch.
+        (measured using Pearson correlation with the agent's predict method 
+        on validation data), as well as the average performance of the best 
+        10 guides the agent has seen after each batch.
         '''
         data = self.env.copy()
         pbar = tqdm(total=len(data) // self.batch * self.batch + len(self.prior))
         agent = Agent(self.prior.copy(), self.len, self.batch)
+        seen = list(self.prior.values())
         corrs = []
         top10 = []
         predicted = np.array(agent.predict(self.val[0].copy()))
         corrs.append(np.corrcoef(predicted, self.val[1])[0, 1])
-        top10.append(np.array([x[1] 
-                        for x in sorted(zip(predicted, self.val[1]))[-10:]]).mean())
+        top10.append(np.array(sorted(seen))[-10:].mean())
         pbar.update(len(self.prior))
         while len(data) > self.batch:
             sampled = agent.act(list(data.keys()))
             agent.observe({seq: data[seq] for seq in sampled})
             for seq in sampled:
+                seen.append(data[seq])
                 del data[seq]
             predicted = np.array(agent.predict(self.val[0].copy()))
             corrs.append(np.corrcoef(predicted, self.val[1])[0, 1])
-            top10.append(np.array([x[1] 
-                            for x in sorted(zip(predicted, self.val[1]))[-10:]]).mean())
+            top10.append(np.array(sorted(seen))[-10:].mean())
             pbar.update(self.batch)
         pbar.close()
         return np.array(corrs), np.array(top10)
