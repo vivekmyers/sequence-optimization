@@ -27,9 +27,9 @@ class GaussianProcess:
             Y.append(b)
         X, Y, x = map(np.array, [X, Y, x])
         X, x = map(self.embed, [X, x])
-        K_XX = squareform(pdist(X))
+        K_XX = squareform(np.exp(-pdist(X) ** 2))
         results = []
-        K_star = cdist(x, X).reshape([len(x), len(X)])
+        K_star = np.exp(-cdist(x, X).reshape([len(x), len(X)]) ** 2)
         mu = self.mu + np.squeeze(K_star @ np.linalg.inv(K_XX) @ (Y[:, None] - self.mu))
         sigma = (1 - K_star @ np.linalg.inv(K_XX) @ K_star.T) / self.sigma
         return mu, np.diagonal(sigma)
