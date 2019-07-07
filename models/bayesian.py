@@ -63,8 +63,7 @@ class BayesianCNN:
             for mb in range(M):
 
                 # sample model weights from N(self.mu, self.rho)
-                eps = [torch.normal(torch.zeros(*x.shape), torch.full(x.shape, 1) + self._eps) for x in self.mu]
-                w = [mu + d * (1 + rho.exp()).log() for mu, rho, d in zip(self.mu, self.rho, eps)]
+                w = [n.rsample() for n in self.dist()]
 
                 # get minibatch of X values, and predicted (mu, sigma) for each Y 
                 Di = D[mb * minibatch : (mb + 1) * minibatch]
