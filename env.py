@@ -41,6 +41,8 @@ class GuideEnv:
         10 guides the agent has seen after each batch.
         '''
         data = self.env.copy()
+        if cutoff is None:
+            cutoff = 1 + len(data) // self.batch
         pbar = tqdm(total=min(len(data) // self.batch * self.batch, (cutoff - 1) * self.batch) + len(self.prior))
         agent = Agent(self.prior.copy(), self.len, self.batch)
         seen = list(self.prior.values())
