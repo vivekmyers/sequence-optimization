@@ -25,13 +25,14 @@ def make_plot(title, yaxis, data, loc):
 if __name__ == '__main__':
 
     # Parse environment parameters
-    parser = argparse.ArgumentParser(description='Run flags')
-    parser.add_argument('--agents', nargs='+', type=str, help='Agent classes to use', required=True)
-    parser.add_argument('--batch', type=int, default=1000, help='Batch size')
-    parser.add_argument('--initial', type=float, default=0.2, help='Starting data portion')
-    parser.add_argument('--validation', type=float, default=0.2, help='Validation data portion')
-    parser.add_argument('--collect', action='store_true', help='Collect into joint graphs')
-    parser.add_argument('--noplot', action='store_true', help='Do not save individual graphs')
+    parser = argparse.ArgumentParser(description='run flags')
+    parser.add_argument('--agents', nargs='+', type=str, help='agent classes to use', required=True)
+    parser.add_argument('--batch', type=int, default=1000, help='batch size')
+    parser.add_argument('--cutoff', type=int, default=None, help='max number of batches to run')
+    parser.add_argument('--initial', type=float, default=0.2, help='starting data portion')
+    parser.add_argument('--validation', type=float, default=0.2, help='validation data portion')
+    parser.add_argument('--collect', action='store_true', help='collect into joint graphs')
+    parser.add_argument('--noplot', action='store_true', help='do not save individual graphs')
 
     args = parser.parse_args()
 
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     for agent in args.agents:
         print()
         print(f'Running {agent}...')
-        corrs, top10 = env.run(eval(agent, mods, {}))
+        corrs, top10 = env.run(eval(agent, mods, {}), args.cutoff)
         print(f'Saving to results/{agent}...')
         try: os.mkdir(f'results/{agent}')
         except OSError: pass

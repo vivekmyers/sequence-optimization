@@ -31,16 +31,17 @@ class GuideEnv:
         self.batch = batch
         assert batch < len(self.env)
         
-    def run(self, Agent):
+    def run(self, Agent, cutoff=None):
         '''Run agent, getting batch-sized list of actions (sequences) to try,
         and calling observe with the labeled sequences until all sequences
-        have been tried. Returns the validation performance after each batch
+        have been tried (or the batch number specified by the cutoff parameter
+        has been reached). Returns the validation performance after each batch
         (measured using Pearson correlation with the agent's predict method 
         on validation data), as well as the average performance of the best 
         10 guides the agent has seen after each batch.
         '''
         data = self.env.copy()
-        pbar = tqdm(total=len(data) // self.batch * self.batch + len(self.prior))
+        pbar = tqdm(total=min(len(data) // self.batch * self.batch, (cutoff - 1) * self.batch) + len(self.prior))
         agent = Agent(self.prior.copy(), self.len, self.batch)
         seen = list(self.prior.values())
         corrs = []
@@ -49,7 +50,7 @@ class GuideEnv:
         corrs.append(np.corrcoef(predicted, self.val[1])[0, 1])
         top10.append(np.array(sorted(seen))[-10:].mean())
         pbar.update(len(self.prior))
-        while len(data) > self.batch:
+        while len(data) > self.batch and (cutoff is None or len(corrs) < cutoff):
             sampled = agent.act(list(data.keys()))
             agent.observe({seq: data[seq] for seq in sampled})
             for seq in sampled:

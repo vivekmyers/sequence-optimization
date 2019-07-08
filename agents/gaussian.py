@@ -3,7 +3,7 @@ from random import *
 import agents.base
 from models.gp import GaussianProcess
 
-def GaussianAgent(epochs=200, initial_epochs=None, beta=100., dim=5):
+def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a deep kernel gaussian process regression. Beta is the square
     of the weighting of the stdev in selecting actions.
@@ -15,19 +15,30 @@ def GaussianAgent(epochs=200, initial_epochs=None, beta=100., dim=5):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=[self.len, 4])
+            self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=[self.len, 4], tau=tau)
             self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, 
                                 minibatch=min(self.batch, 100))
         
         def act(self, seqs):
             prior = {}
             choices = []
-            for i in range(self.batch):
-                mu, sigma = self.model.interpolate(seqs, prior)
-                idx = np.argmax(mu + np.sqrt(beta) * sigma)
-                prior[seqs[idx]] = mu[idx]
-                choices.append(idx)
-            return np.array(seqs)[choices]
+            t = len(self.seen) // self.batch
+            D = len(seqs) + len(self.seen)
+            beta = lambda t: 2 * np.log(D * t ** 2 * np.pi ** 2 / 3)
+            mu = self.model.interpolate(seqs, prior)
+            sigma = self.model.uncertainty(seqs, prior)
+            yt = (mu - np.sqrt(beta(t)) * sigma).max()
+            seqs = np.array(seqs)
+            Rt = seqs[mu + 2 * np.sqrt(beta(t + 1)) * sigma >= yt]
+            x0 = seqs[np.argmax(mu + np.sqrt(beta(t)) * sigma)]
+            prior[x0] = None
+            choices = [x0]
+            for i in range(self.batch - 1):
+                sigma = self.model.uncertainty(Rt, prior)
+                xk = Rt[np.argmax(sigma)]
+                prior[xk] = None
+                choices.append(xk)
+            return choices
 
         def observe(self, data):
             super().observe(data)
@@ -35,7 +46,7 @@ def GaussianAgent(epochs=200, initial_epochs=None, beta=100., dim=5):
                                 minibatch=min(self.batch, 100))
         
         def predict(self, seqs):
-            return self.model.interpolate(seqs, {})[0]
+            return self.model.interpolate(seqs, {})
 
     return Agent
 

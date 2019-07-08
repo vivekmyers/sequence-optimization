@@ -54,7 +54,7 @@ class Embedding:
     
     def __call__(self, seqs):
         '''Embed list of sequences.'''
-        return np.squeeze(self.model.embed(torch.tensor([self.encode(seq) for seq in seqs]).float()).detach().numpy())
+        return self.model.embed(torch.tensor([self.encode(seq) for seq in seqs]).float()).detach().numpy()
 
     def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3):
         super().__init__()
