@@ -16,7 +16,7 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=[self.len, 4], tau=tau)
+            self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, tau=tau)
             self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, 
                                 minibatch=min(len(self.seen), 100))
         

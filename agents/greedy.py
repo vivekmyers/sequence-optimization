@@ -14,7 +14,7 @@ def GreedyAgent(epochs=10, initial_epochs=None):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = CNN(encoder=self.encode, shape=[self.len, 4])
+            self.model = CNN(encoder=self.encode, shape=self.shape)
             self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, 
                             minibatch=min(len(self.seen), 100))
         

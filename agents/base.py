@@ -9,7 +9,7 @@ class BaseAgent:
         self.seen = prior
         self.batch = batch
         self.encode_cache = {}
-        self.len = length + dna.featurize.num_features
+        self.shape = (length - 1, 4 + dna.featurize.num_features)
         
     def encode(self, seq):
         if seq in self.encode_cache:
