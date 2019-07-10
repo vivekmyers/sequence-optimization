@@ -32,16 +32,13 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
             seqs = np.array(seqs)
             x0 = seqs[np.argmax(mu + np.sqrt(beta(t)) * sigma)]
             Rt = seqs[mu + 2 * np.sqrt(beta(t + 1)) * sigma >= yt]
-            Rt = [x for x in Rt if x != x0]
             prior[x0] = None
             choices = [x0]
             for i in range(self.batch - 1):
                 sigma = self.model.uncertainty(Rt, prior)
-                idx = np.argmax(sigma)
-                xk = Rt[idx]
+                xk = Rt[np.argmax(sigma)]
                 prior[xk] = None
                 choices.append(xk)
-                Rt = np.concatenate([Rt[:idx], Rt[idx + 1:]])
             return choices
 
         def observe(self, data):

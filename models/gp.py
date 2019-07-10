@@ -43,7 +43,7 @@ class GaussianProcess:
         sigma = self.sigma + self.eps - K_star @ np.linalg.inv(K_XX + np.eye(len(X)) * self.eps) @ K_star.T
         return np.diagonal(sigma)
 
-    def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=0.01):
+    def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=0.0):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
