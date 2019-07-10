@@ -1,5 +1,5 @@
 import os, argparse
-import env
+import dna.env
 import seaborn as sns
 import matplotlib.pyplot as plt
 import importlib
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    env = env.GuideEnv(batch=args.batch, initial=args.initial, validation=args.validation,
+    env = dna.env.GuideEnv(batch=args.batch, initial=args.initial, validation=args.validation,
             files=[f'data/{f}' for f in os.listdir('data') if f.endswith('.csv')])
 
     # Load agent modules

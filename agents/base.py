@@ -1,5 +1,6 @@
 import numpy as np
 from random import *
+import dna.featurize
 
 class BaseAgent:
     '''Template for agent classes.'''
@@ -8,15 +9,13 @@ class BaseAgent:
         self.seen = prior
         self.batch = batch
         self.encode_cache = {}
-        self.len = length
+        self.len = length + dna.featurize.num_features
         
     def encode(self, seq):
         if seq in self.encode_cache:
             return self.encode_cache[seq]
         assert seq[0] in '+-'
-        arr = np.zeros([len(seq), 4])
-        arr[0, :] = 1 if seq[0] == '-' else 0
-        arr[(np.arange(1, len(seq)), ['ATCG'.index(i) for i in seq[1:]])] = 1
+        arr = dna.featurize.encode(seq)
         self.encode_cache[seq] = arr
         return arr
     
