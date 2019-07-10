@@ -83,7 +83,8 @@ class UncertainCNN:
         scores of each one.
         '''
         result = self.model(self._process([self.encode(x) for x in seqs]))
-        return torch.sigmoid(result[:, 0]).detach().numpy(), torch.exp(result[:, 1]).add(1).log().detach().numpy()
+        return torch.sigmoid(result[:, 0]).detach().cpu().numpy(), \
+                torch.exp(result[:, 1]).add(1).log().detach().cpu().numpy()
     
     def __call__(self, seqs):
         return self.predict(seqs)
@@ -93,9 +94,9 @@ class UncertainCNN:
         super().__init__()
         if not torch.cuda.is_available(): 
             print('CUDA not available')
-            self.device = 'cuda'
-        else:
             self.device = 'cpu'
+        else:
+            self.device = 'cuda'
         self.alpha = alpha
         self._process = lambda x: torch.tensor(np.array(x), requires_grad=True).to(self.device)
         self._make_net(shape)

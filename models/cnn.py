@@ -31,7 +31,7 @@ class CNN:
             def l2(self):
                 return sum(torch.norm(param, 2) for c in self.conv for param in c.parameters())
 
-        self.model = Model()
+        self.model = Model().to(self.device)
 
     def fit(self, seqs, scores, epochs, minibatch):
         self.model.train()
@@ -40,7 +40,7 @@ class CNN:
         for ep in range(epochs):
             shuffle(D)
             for mb in range(M):
-                X, Y = map(torch.tensor, zip(*D[mb * minibatch : (mb + 1) * minibatch]))
+                X, Y = map(lambda t: torch.tensor(t).to(self.device), zip(*D[mb * minibatch : (mb + 1) * minibatch]))
                 loss = torch.norm(Y - self.model(X.float()), 2) + self.lam * self.model.l2()
                 self.opt.zero_grad()
                 loss.backward()
@@ -48,7 +48,8 @@ class CNN:
     
     def predict(self, seqs):
         self.model.eval()
-        return self.model(torch.tensor([self.encode(seq) for seq in seqs]).float()).detach().numpy()
+        return self.model(torch.tensor(
+            [self.encode(seq) for seq in seqs]).to(self.device).float()).detach().cpu().numpy()
     
     def __call__(self, seqs):
         return self.predict(seqs)
@@ -60,6 +61,11 @@ class CNN:
         lam: l2 regularization constant.
         '''
         super().__init__()
+        if not torch.cuda.is_available():
+            print('CUDA not available')
+            self.device = 'cpu'
+        else:
+            self.device = 'cuda'
         self.encode = encoder
         self.lam = lam
         self.alpha = alpha

@@ -37,7 +37,7 @@ class Embedding:
             def l2(self):
                 return sum(torch.norm(param, 2) for c in self.conv for param in c.parameters())
 
-        self.model = Model()
+        self.model = Model().to(self.device)
 
     def refit(self, seqs, scores, epochs, minibatch):
         '''Refit embedding with labeled sequences.'''
@@ -46,7 +46,8 @@ class Embedding:
         for ep in range(epochs):
             shuffle(D)
             for mb in range(M):
-                X, Y = map(torch.tensor, zip(*D[mb * minibatch : (mb + 1) * minibatch]))
+                X, Y = map(lambda t: torch.tensor(t).to(self.device), 
+                            zip(*D[mb * minibatch : (mb + 1) * minibatch]))
                 loss = torch.norm(Y - self.model(X.float()), 2) + self.lam * self.model.l2()
                 self.opt.zero_grad()
                 loss.backward()
@@ -54,13 +55,20 @@ class Embedding:
     
     def __call__(self, seqs):
         '''Embed list of sequences.'''
-        return self.model.embed(torch.tensor([self.encode(seq) for seq in seqs]).float()).detach().numpy()
+        return self.model.embed(
+                torch.tensor([self.encode(seq) for seq in seqs])
+                .float().to(self.device)).detach().cpu().numpy()
 
     def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3):
         '''Embeds sequences encoded by encoder with learning rate alpha and l2 regularization lambda,
         fitting a function from embedding of dimension dim to the labels.
         '''
         super().__init__()
+        if not torch.cuda.is_available():
+            print('CUDA not available')
+            self.device = 'cpu'
+        else:
+            self.device = 'cuda'
         self.encode = encoder
         self.lam = lam
         self.alpha = alpha

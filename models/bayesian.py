@@ -98,7 +98,8 @@ class BayesianCNN:
         '''
         X = self._process([self.encode(x) for x in seqs])
         result = self._model(self.mu, X)
-        return torch.sigmoid(result[:, 0]).detach().numpy(), result[:, 1].exp().add(1).log().detach().numpy()
+        return torch.sigmoid(result[:, 0]).detach().cpu().numpy(), \
+                result[:, 1].exp().add(1).log().detach().cpu().numpy()
     
     def sample(self, seqs):
         '''Sample a model theta from the model distribution conditioned on all observed data,
@@ -107,7 +108,8 @@ class BayesianCNN:
         X = self._process([self.encode(x) for x in seqs])
         w = [n.sample() for n in self.dist()]
         result = self._model(w, X)
-        return torch.sigmoid(result[:, 0]).detach().numpy(), result[:, 1].exp().add(1).log().detach().numpy()
+        return torch.sigmoid(result[:, 0]).detach().cpu().numpy(), \
+                result[:, 1].exp().add(1).log().detach().cpu().numpy()
     
     def __call__(self, seqs):
         return self.predict(seqs)
@@ -119,9 +121,9 @@ class BayesianCNN:
         super().__init__()
         if not torch.cuda.is_available(): 
             print('CUDA not available')
-            self.device = 'cuda'
-        else:
             self.device = 'cpu'
+        else:
+            self.device = 'cuda'
         self.alpha = alpha
         self.encode = encoder
         self._eps = 1e-6
