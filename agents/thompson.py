@@ -16,7 +16,7 @@ def ThompsonAgent(epochs=50, initial_epochs=None):
         def __init__(self, *args):
             super().__init__(*args)
             self.model = BayesianCNN(encoder=self.encode, shape=[self.len, 4])
-            self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, minibatch=min(self.batch, 100))
+            self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, minibatch=min(len(self.seen), 100))
         
         def act(self, seqs):
             mu, sigma = self.model.sample(seqs)
@@ -24,7 +24,7 @@ def ThompsonAgent(epochs=50, initial_epochs=None):
 
         def observe(self, data):
             super().observe(data)
-            self.model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=min(self.batch, 100))
+            self.model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=min(len(self.seen), 100))
         
         def predict(self, seqs):
             mu, sigma = self.model.predict(seqs)

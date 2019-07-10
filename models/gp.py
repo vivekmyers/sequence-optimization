@@ -50,6 +50,7 @@ class GaussianProcess:
         lam: l2 regularization constant
         mu: GP prior mean
         sigma: GP prior standard deviation
+        tau: kernel covariance parameter
         '''
         super().__init__()
         self.X, self.Y = (), ()

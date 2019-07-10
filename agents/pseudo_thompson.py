@@ -1,13 +1,14 @@
 import numpy as np
 from random import *
-from models.bayesian import BayesianCNN
+from models.uncertain import UncertainCNN
 import agents.base
+from torch.distributions import Normal
+from torch import tensor
 
-def UCBAgent(epochs=50, initial_epochs=None):
-    '''Constructs agent with a Bayesian CNN, using Thompson sampling with the
-    network's uncertainty (over its parameters) to select the highest UCB
-    sequences to test in terms of (mu + sigma), and refits the model
-    to update the predicted distributions between batches.
+def PseudoThompsonAgent(epochs=50, initial_epochs=None):
+    '''Constructs agent with a CNN trained to predict gaussians with uncertainty, 
+    using Thompson sampling with the network's uncertainty to select batches, and 
+    refitting the model to update the predicted distributions between batches.
     '''
     if initial_epochs is None:
         initial_epochs = 2 * epochs
@@ -16,13 +17,13 @@ def UCBAgent(epochs=50, initial_epochs=None):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = BayesianCNN(encoder=self.encode, shape=[self.len, 4])
+            self.model = UncertainCNN(encoder=self.encode, shape=[self.len, 4])
             self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, minibatch=min(len(self.seen), 100))
         
         def act(self, seqs):
-            mu, sigma = self.model.sample(seqs)
-            ucb = mu + sigma
-            return list(zip(*sorted(zip(ucb, seqs))[-self.batch:]))[1]
+            mu, sigma = map(tensor, self.model.predict(seqs))
+            sampled = Normal(mu, sigma).sample().numpy()
+            return [*zip(*sorted(zip(sampled, seqs))[-self.batch:])][1]
 
         def observe(self, data):
             super().observe(data)

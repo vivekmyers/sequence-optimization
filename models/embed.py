@@ -22,8 +22,7 @@ class Embedding:
                     conv[2], nn.ReLU()) 
                 self.fc_layers = nn.Sequential(
                     nn.Linear(32 * shape[0], 100), nn.ReLU(), nn.Linear(100, dim))
-                self.score = nn.Sequential(
-                    nn.Linear(dim, 100), nn.ReLU(), nn.Linear(100, 1))
+                self.score = nn.Linear(dim, 1)
 
             def forward(self, x):
                 filtered = self.conv_layers(x.permute(0, 2, 1))
@@ -57,6 +56,9 @@ class Embedding:
         return self.model.embed(torch.tensor([self.encode(seq) for seq in seqs]).float()).detach().numpy()
 
     def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3):
+        '''Embeds sequences encoded by encoder with learning rate alpha and l2 regularization lambda,
+        fitting a function from embedding of dimension dim to the labels.
+        '''
         super().__init__()
         self.encode = encoder
         self.lam = lam

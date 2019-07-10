@@ -3,9 +3,9 @@ from random import *
 import agents.base
 from models.cnn import CNN
 
-def GreedyAgent(epochs=10, initial_epochs=None):
+def RandomAgent(epochs=10, initial_epochs=None):
     '''Constructs agent with CNN to predict sequence values that trains with each observation.
-    Greedily selects sequences with best predicions.
+    Randomly selects new sequences.
     '''
     if initial_epochs is None:
         initial_epochs = 2 * epochs
@@ -19,7 +19,7 @@ def GreedyAgent(epochs=10, initial_epochs=None):
                             minibatch=min(len(self.seen), 100))
         
         def act(self, seqs):
-            return list(zip(*sorted(zip(self.predict(seqs), seqs))[-self.batch:]))[1]
+            return sample(seqs, self.batch)
 
         def observe(self, data):
             super().observe(data)

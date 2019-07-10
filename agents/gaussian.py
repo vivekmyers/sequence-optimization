@@ -5,8 +5,9 @@ from models.gp import GaussianProcess
 
 def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
-    sequences with a deep kernel gaussian process regression. Beta is the square
-    of the weighting of the stdev in selecting actions.
+    sequences with a deep kernel gaussian process regression.
+    dim: embedding dimension
+    tau: kernel covariance parameter
     '''
     if initial_epochs is None:
         initial_epochs = 2 * epochs
@@ -17,7 +18,7 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
             super().__init__(*args)
             self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=[self.len, 4], tau=tau)
             self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, 
-                                minibatch=min(self.batch, 100))
+                                minibatch=min(len(self.seen), 100))
         
         def act(self, seqs):
             prior = {}
@@ -43,7 +44,7 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
         def observe(self, data):
             super().observe(data)
             self.model.fit(*zip(*self.seen.items()), epochs=epochs, 
-                                minibatch=min(self.batch, 100))
+                                minibatch=min(len(self.seen), 100))
         
         def predict(self, seqs):
             return self.model.interpolate(seqs, {})

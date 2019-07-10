@@ -78,6 +78,7 @@ class BayesianCNN:
                 p_w = sum(Normal(0, 1).log_prob(weight).sum() for weight in w) # weights prior
                 p_D = Normal(Y_mu, Y_rho + self._eps).log_prob(Y).sum() # prediction loss
                 loss = (q_w - p_w) / M - p_D
+                loss = torch.clamp(loss, 0, 1 / self._eps)
 
                 # compute and apply gradients
                 if torch.isnan(loss):
@@ -87,6 +88,8 @@ class BayesianCNN:
                 for weight in self.mu + self.rho:
                     # we clip gradients to avoid exploding logprobs
                     nn.utils.clip_grad_norm_(weight, 1)
+                    if torch.isnan(weight.grad).any():
+                        weight.grad[torch.isnan(weight.grad)] = 0.
                 self.opt.step()
                     
     def predict(self, seqs):
