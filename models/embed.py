@@ -30,6 +30,7 @@ class Embedding:
                     self.fc_layers(filtered.reshape(filtered.shape[0], -1))))
 
             def embed(self, x):
+                if len(x) == 0: return torch.tensor([])
                 filtered = self.conv_layers(x.permute(0, 2, 1))
                 return self.fc_layers(filtered.reshape(filtered.shape[0], -1))
             

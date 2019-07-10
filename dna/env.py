@@ -54,6 +54,7 @@ class GuideEnv:
         pbar.update(len(self.prior))
         while len(data) > self.batch and (cutoff is None or len(corrs) < cutoff):
             sampled = agent.act(list(data.keys()))
+            assert len(set(sampled)) == self.batch, "bad action"
             agent.observe({seq: data[seq] for seq in sampled})
             for seq in sampled:
                 seen.append(data[seq])

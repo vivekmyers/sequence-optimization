@@ -29,7 +29,7 @@ class GaussianProcess:
         X, x = map(self.embed, [X, x])
         K_XX = self.sigma * np.exp(-1 / (2 * self.tau ** 2) * squareform(pdist(X)) ** 2)
         K_star = self.sigma * np.exp(-1 / (2 * self.tau ** 2) * cdist(x, X).reshape([len(x), len(X)]) ** 2)
-        mu = self.mu + np.squeeze(K_star @ np.linalg.inv(K_XX) @ (Y[:, None] - self.mu))
+        mu = self.mu + np.squeeze(K_star @ np.linalg.inv(K_XX + np.eye(len(X)) * self.eps) @ (Y[:, None] - self.mu))
         return mu
 
     def uncertainty(self, x, prior):
@@ -40,10 +40,10 @@ class GaussianProcess:
         X, x = map(self.embed, map(np.array, [X, x]))
         K_XX = self.sigma * np.exp(-1 / (2 * self.tau ** 2) * squareform(pdist(X)) ** 2)
         K_star = self.sigma * np.exp(-1 / (2 * self.tau ** 2) * cdist(x, X).reshape([len(x), len(X)]) ** 2)
-        sigma = self.sigma - K_star @ np.linalg.inv(K_XX) @ K_star.T
+        sigma = self.sigma + self.eps - K_star @ np.linalg.inv(K_XX + np.eye(len(X)) * self.eps) @ K_star.T
         return np.diagonal(sigma)
 
-    def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3, mu=0.5, sigma=0.5, tau=1):
+    def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=0.01):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
@@ -51,6 +51,7 @@ class GaussianProcess:
         mu: GP prior mean
         sigma: GP prior standard deviation
         tau: kernel covariance parameter
+        eps: noise
         '''
         super().__init__()
         self.X, self.Y = (), ()
@@ -58,4 +59,5 @@ class GaussianProcess:
         self.mu = mu
         self.sigma = sigma
         self.tau = tau
+        self.eps = eps
 
