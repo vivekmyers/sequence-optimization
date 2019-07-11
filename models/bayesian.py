@@ -12,7 +12,7 @@ class BayesianCNN:
     '''
     
     def _seq_conv(self, length, channels): # get list of empty model parameters
-        mk = lambda *x: torch.empty(*x, requires_grad=True).to(self.device)
+        mk = lambda *x: torch.empty(*x, requires_grad=True, device=self.device)
         W1_cv = mk(64, channels, 7)
         B1_cv = mk(64)
         W2_cv = mk(64, 64, 5)
@@ -43,7 +43,7 @@ class BayesianCNN:
             else:
                 nn.init.normal_(var) # biases
         self.rho = [torch.full(x.shape, x.detach().std().mul(sig_scale).exp().add(-1).log(), 
-                        requires_grad=True).to(self.device)
+                        requires_grad=True, device=self.device)
                         for x in self.mu] # scaled stdevs of model parameters
             
     def dist(self):
