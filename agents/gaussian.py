@@ -2,8 +2,9 @@ import numpy as np
 from random import *
 import agents.base
 from models.gp import GaussianProcess
+from models.cnn import CNN
 
-def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
+def GaussianAgent(epochs=10, initial_epochs=None, dim=5, tau=0.01):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a deep kernel gaussian process regression.
     dim: embedding dimension
@@ -31,13 +32,20 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
             sigma = self.model.uncertainty(seqs, prior)
             yt = (mu - np.sqrt(beta(t)) * sigma).max()
             seqs = np.array(seqs)
-            x0 = seqs[np.argmax(mu + np.sqrt(beta(t)) * sigma)]
+            idx = np.argmax(mu + np.sqrt(beta(t)) * sigma)
+            x0 = seqs[idx]
             Rt = seqs[mu + 2 * np.sqrt(beta(t + 1)) * sigma >= yt]
+            Rt = np.array([x for x in Rt if x != x0])
             prior[x0] = None
             choices = [x0]
             for i in range(self.batch - 1):
+                if len(Rt) == 0:
+                    choices.append(choice([x for x in seqs if x not in choices]))
+                    continue
                 sigma = self.model.uncertainty(Rt, prior)
-                xk = Rt[np.argmax(sigma)]
+                idx = np.argmax(sigma)
+                xk = Rt[idx]
+                Rt = np.delete(Rt, idx, 0)
                 prior[xk] = None
                 choices.append(xk)
             return choices
@@ -48,7 +56,10 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
                                 minibatch=min(len(self.seen), 100))
         
         def predict(self, seqs):
-            return self.model.interpolate(seqs, {})
+            model = CNN(encoder=self.encode, shape=self.shape)
+            if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100) 
+            if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100) 
+            return model.predict(seqs)
 
     return Agent
 

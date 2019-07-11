@@ -18,10 +18,15 @@ def kmers(s, k=3):
     '''Returns array of n-hot locations of each kmer in the sequence.'''
     s = s[1:] # remove strand +/-
     features = np.zeros(shape=(4 ** k, len(s)))
-    for i, kmer in enumerate(itertools.product('ATCG', repeat=k)):
-        for j in range(len(s)):
-            if s[j : j + k] == ''.join(kmer):
-                features[i][j] = 1
+    val = lambda b: 'ATCG'.index(b)
+    for j in range(len(s)):
+        kmer = s[j : j + k]
+        if len(kmer) == k:
+            total = 0
+            while len(kmer):
+                total = 4 * total + val(kmer[0])
+                kmer = kmer[1:]
+            features[total][j] = 1.
     return features
         
 def encode(seq):

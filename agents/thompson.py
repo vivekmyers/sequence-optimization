@@ -1,6 +1,7 @@
 import numpy as np
 from random import *
 from models.bayesian import BayesianCNN
+from models.cnn import CNN
 import agents.base
 
 def ThompsonAgent(epochs=50, initial_epochs=None):
@@ -28,8 +29,10 @@ def ThompsonAgent(epochs=50, initial_epochs=None):
             self.model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=min(len(self.seen), 100))
         
         def predict(self, seqs):
-            mu, sigma = self.model.predict(seqs)
-            return mu
+            model = CNN(encoder=self.encode, shape=self.shape)
+            if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
+            if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100)
+            return model.predict(seqs)
 
     return Agent
 

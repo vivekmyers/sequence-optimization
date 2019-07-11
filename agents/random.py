@@ -4,8 +4,8 @@ import agents.base
 from models.cnn import CNN
 
 def RandomAgent(epochs=10, initial_epochs=None):
-    '''Constructs agent with CNN to predict sequence values that trains with each observation.
-    Randomly selects new sequences.
+    '''Constructs agent that uses CNN to predict sequence values.
+    Randomly selects new sequences to observe.
     '''
     if initial_epochs is None:
         initial_epochs = epochs // 4
@@ -14,21 +14,18 @@ def RandomAgent(epochs=10, initial_epochs=None):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = CNN(encoder=self.encode, shape=self.shape)
-            if len(self.prior):
-                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, 
-                                minibatch=min(len(self.seen), 100))
         
         def act(self, seqs):
             return sample(seqs, self.batch)
 
         def observe(self, data):
             super().observe(data)
-            self.model.fit(*zip(*self.seen.items()), epochs=epochs, 
-                            minibatch=min(len(self.seen), 100))
         
         def predict(self, seqs):
-            return self.model.predict(seqs)
+            model = CNN(encoder=self.encode, shape=self.shape)
+            if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
+            if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100)
+            return model.predict(seqs)
 
     return Agent
 
