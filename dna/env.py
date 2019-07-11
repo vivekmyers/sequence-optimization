@@ -6,15 +6,14 @@ from random import *
 class GuideEnv:
     '''Stores labeled sequences, reserving some for validation, and runs agents on them.'''
 
-    def __init__(self, files, batch=1000, validation=0.2, initial=0.0):
+    def __init__(self, files, batch=1000, validation=0.2, initial=None):
         '''Initialize environment.
         files: csv files to read data from
         batch: number of sequences selected per action
         validation: portion of sequences to save for validation
-        initial: portion of sequences given to each agent on construction
+        initial: pretrain on given datafile
         '''
         assert 0 <= validation < 1
-        assert 0 <= initial < 1
         dfs = list(map(pd.read_csv, files))
         data = [(strand + seq, score) for df in dfs
             for _, strand, seq, score in 
@@ -22,12 +21,15 @@ class GuideEnv:
         self.len = len(data[0][0])
         shuffle(data)
         r = int(validation * len(data))
-        self.env = data[r:]
+        self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
         # start agent with some portion of initial sequences
-        r = int(initial * len(self.env))
-        self.prior = dict(self.env[:r])
-        self.env = dict(self.env[r:])
+        if initial:
+            df = pd.read_csv(initial, delimiter=r'\t', engine='python', compression='gzip')
+            azimuth_guides = ['+' + s[6:-3].upper() for s, pam in zip(df.guide_seq, df.pam_seq) if pam == 'GG']
+            self.prior = dict([*zip(azimuth_guides, df.azimuth_pred)])
+        else:
+            self.prior = {}
         self.batch = batch
         assert batch < len(self.env)
         
@@ -43,15 +45,11 @@ class GuideEnv:
         data = self.env.copy()
         if cutoff is None:
             cutoff = 1 + len(data) // self.batch
-        pbar = tqdm(total=min(len(data) // self.batch * self.batch, (cutoff - 1) * self.batch) + len(self.prior))
         agent = Agent(self.prior.copy(), self.len, self.batch)
-        seen = list(self.prior.values())
+        seen = []
         corrs = []
         top10 = []
-        predicted = np.array(agent.predict(self.val[0].copy()))
-        corrs.append(np.corrcoef(predicted, self.val[1])[0, 1])
-        top10.append(np.array(sorted(seen))[-10:].mean())
-        pbar.update(len(self.prior))
+        pbar = tqdm(total=min(len(data) // self.batch * self.batch, cutoff * self.batch))
         while len(data) > self.batch and (cutoff is None or len(corrs) < cutoff):
             sampled = agent.act(list(data.keys()))
             assert len(set(sampled)) == self.batch, "bad action"

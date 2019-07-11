@@ -9,14 +9,15 @@ def ThompsonAgent(epochs=50, initial_epochs=None):
     refitting the model to update the predicted distributions between batches.
     '''
     if initial_epochs is None:
-        initial_epochs = 2 * epochs
+        initial_epochs = epochs // 4
 
     class Agent(agents.base.BaseAgent):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.model = BayesianCNN(encoder=self.encode, shape=self.shape)
-            self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, minibatch=min(len(self.seen), 100))
+            if len(self.prior):
+                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
         
         def act(self, seqs):
             mu, sigma = self.model.sample(seqs)

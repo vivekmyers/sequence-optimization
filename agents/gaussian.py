@@ -10,15 +10,16 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
     tau: kernel covariance parameter
     '''
     if initial_epochs is None:
-        initial_epochs = 2 * epochs
+        initial_epochs = epochs // 4
 
     class Agent(agents.base.BaseAgent):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, tau=tau)
-            self.model.fit(*zip(*self.seen.items()), epochs=initial_epochs, 
-                                minibatch=min(len(self.seen), 100))
+            if len(self.prior):
+                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, 
+                                    minibatch=100)
         
         def act(self, seqs):
             prior = {}

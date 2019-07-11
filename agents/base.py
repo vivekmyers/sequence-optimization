@@ -6,7 +6,8 @@ class BaseAgent:
     '''Template for agent classes.'''
 
     def __init__(self, prior, length, batch):
-        self.seen = prior
+        self.seen = {}
+        self.prior = prior
         self.batch = batch
         self.encode_cache = {}
         self.shape = (length - 1, 4 + dna.featurize.num_features)

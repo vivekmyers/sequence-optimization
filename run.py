@@ -29,15 +29,17 @@ if __name__ == '__main__':
     parser.add_argument('--agents', nargs='+', type=str, help='agent classes to use', required=True)
     parser.add_argument('--batch', type=int, default=1000, help='batch size')
     parser.add_argument('--cutoff', type=int, default=None, help='max number of batches to run')
-    parser.add_argument('--initial', type=float, default=0.2, help='starting data portion')
+    parser.add_argument('--pretrain', action='store_true', help='pretrain on azimuth data')
     parser.add_argument('--validation', type=float, default=0.2, help='validation data portion')
     parser.add_argument('--collect', action='store_true', help='collect into joint graphs')
     parser.add_argument('--noplot', action='store_true', help='do not save individual graphs')
 
     args = parser.parse_args()
 
-    env = dna.env.GuideEnv(batch=args.batch, initial=args.initial, validation=args.validation,
-            files=[f'data/{f}' for f in os.listdir('data') if f.endswith('.csv')])
+    env = dna.env.GuideEnv(batch=args.batch, 
+            initial='data/Azimuth/azimuth_preds.csv.gz' if args.pretrain else None, 
+            validation=args.validation, files=[f'data/DeepCRISPR/{f}' 
+                for f in os.listdir('data/DeepCRISPR') if f.endswith('.csv')])
 
     # Load agent modules
     files = [f for f in os.listdir('agents') if f.endswith('.py')]
@@ -66,7 +68,7 @@ if __name__ == '__main__':
         np.save(f'results/{agent}/{agent}-batch={args.batch}.npy', dict(
             agent=agent,
             batch=args.batch,
-            initial=args.initial,
+            pretrain=args.pretrain,
             validation=args.validation,
             correlations=corrs,
             top10=top10))
