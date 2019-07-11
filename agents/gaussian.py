@@ -18,13 +18,13 @@ def GaussianAgent(epochs=200, initial_epochs=None, dim=5, tau=0.01):
             super().__init__(*args)
             self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, tau=tau)
             if len(self.prior):
-                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, 
-                                    minibatch=100)
+                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs, 
+                                        minibatch=100)
         
         def act(self, seqs):
             prior = {}
             choices = []
-            t = len(self.seen) // self.batch
+            t = 1 + len(self.seen) // self.batch
             D = len(seqs) + len(self.seen)
             beta = lambda t: 2 * np.log(D * t ** 2 * np.pi ** 2 / 3)
             mu = self.model.interpolate(seqs, prior)

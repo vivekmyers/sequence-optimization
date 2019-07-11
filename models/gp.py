@@ -25,6 +25,8 @@ class GaussianProcess:
         for a, b in prior.items():
             X.append(a)
             Y.append(b)
+        if len(X) == 0 or len(x) == 0:
+            return np.full([len(x)], self.mu)
         X, Y, x = map(np.array, [X, Y, x])
         X, x = map(self.embed, [X, x])
         K_XX = self.sigma * np.exp(-1 / (2 * self.tau ** 2) * squareform(pdist(X)) ** 2)
@@ -38,6 +40,8 @@ class GaussianProcess:
         process regression and returns predicted sigmas for each point in x.
         '''
         X = [*self.X] + [*prior.keys()]
+        if len(X) == 0 or len(x) == 0:
+            return np.full([len(x)], self.sigma)
         X, x = map(self.embed, map(np.array, [X, x]))
         K_XX = self.sigma * np.exp(-1 / (2 * self.tau ** 2) * squareform(pdist(X)) ** 2)
         K_star = self.sigma * np.exp(-1 / (2 * self.tau ** 2) * cdist(x, X).reshape([len(x), len(X)]) ** 2)
