@@ -28,10 +28,13 @@ def GreedyAgent(epochs=10, initial_epochs=None):
                             minibatch=min(len(self.seen), 100))
         
         def predict(self, seqs):
-            model = CNN(encoder=self.encode, shape=self.shape)
-            if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
-            if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100)
-            return model.predict(seqs)
+            result = np.zeros([len(seqs)])
+            while not result.std():
+                model = CNN(encoder=self.encode, shape=self.shape)
+                if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
+                if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100)
+                result = model.predict(seqs)
+            return result
 
     return Agent
 
