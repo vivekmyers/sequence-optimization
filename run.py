@@ -4,10 +4,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import importlib
 import numpy as np
+import multiprocessing
+import torch
+import signal
 sns.set_style('darkgrid')
+signal.signal(signal.SIGINT, lambda x, y: exit(1))
 
 
 def make_plot(title, yaxis, data, loc):
+    '''Make a plot of [(Datum, Label)] data and save to given location in results.'''
     plt.figure()
     plt.title(title)
     plt.xlabel('Batch')
@@ -20,6 +25,29 @@ def make_plot(title, yaxis, data, loc):
     if any([label is not None for _, label in data]):
         plt.legend()
     plt.savefig(f'results/{loc}.png')
+
+def run_agent(args):
+    '''Run agent in provided environment, with given arguments.
+    '''
+    agent, env, pos, cutoff, noplot, maxsz, batch, pretrain, validation = args
+    name = agent + ' ' * (maxsz - len(agent))
+    with torch.cuda.device(pos % torch.cuda.device_count()):
+        corrs, top10 = env.run(eval(agent, mods, {}), cutoff, name, pos)
+    try: os.mkdir(f'results/{agent}')
+    except OSError: pass
+    if not noplot:
+        make_plot(f'{agent}, batch={batch}', 'Correlation', [(corrs, None)], 
+                    f'{agent}/{agent}-batch={batch}-corr')
+        make_plot(f'{agent}, batch={batch}', 'Top 10 Average', [(top10, None)], 
+                    f'{agent}/{agent}-batch={batch}-top10')
+    np.save(f'results/{agent}/{agent}-batch={batch}.npy', dict(
+        agent=agent,
+        batch=batch,
+        pretrain=pretrain,
+        validation=validation,
+        correlations=corrs,
+        top10=top10))
+    return agent, corrs, top10
 
 
 if __name__ == '__main__':
@@ -50,29 +78,11 @@ if __name__ == '__main__':
         mods.update(mod.__dict__)
 
     # Run agents
-    collected = []
-
-    for agent in args.agents:
-        print()
-        print(f'Running {agent}...')
-        corrs, top10 = env.run(eval(agent, mods, {}), args.cutoff)
-        print(f'Saving to results/{agent}...')
-        try: os.mkdir(f'results/{agent}')
-        except OSError: pass
-        if not args.noplot:
-            make_plot(f'{agent}, batch={args.batch}', 'Correlation', [(corrs, None)], 
-                        f'{agent}/{agent}-batch={args.batch}-corr')
-            make_plot(f'{agent}, batch={args.batch}', 'Top 10 Average', [(top10, None)], 
-                        f'{agent}/{agent}-batch={args.batch}-top10')
-        collected.append((agent, corrs, top10))
-        np.save(f'results/{agent}/{agent}-batch={args.batch}.npy', dict(
-            agent=agent,
-            batch=args.batch,
-            pretrain=args.pretrain,
-            validation=args.validation,
-            correlations=corrs,
-            top10=top10))
-        print()
+    pool = multiprocessing.Pool()
+    collected = pool.map(run_agent, [(agent, env, pos, args.cutoff, args.noplot, 
+                                        max(map(len, args.agents)), args.batch, 
+                                        args.pretrain, args.validation)
+                                        for pos, agent in enumerate(args.agents)])
 
     # If collecting, make joint graph
     if args.collect and len(args.agents) > 1:

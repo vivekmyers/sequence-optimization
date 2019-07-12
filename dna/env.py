@@ -33,23 +33,25 @@ class GuideEnv:
         self.batch = batch
         assert batch < len(self.env)
         
-    def run(self, Agent, cutoff=None):
+    def run(self, Agent, cutoff, name, pos):
         '''Run agent, getting batch-sized list of actions (sequences) to try,
         and calling observe with the labeled sequences until all sequences
         have been tried (or the batch number specified by the cutoff parameter
         has been reached). Returns the validation performance after each batch
         (measured using Pearson correlation with the agent's predict method 
         on validation data), as well as the average performance of the best 
-        10 guides the agent has seen after each batch.
+        10 guides the agent has seen after each batch. The name and pos
+        parameters are used for a progress bar.
         '''
         data = self.env.copy()
         if cutoff is None:
             cutoff = 1 + len(data) // self.batch
+        pbar = tqdm(total=min(len(data) // self.batch * self.batch, cutoff * self.batch), 
+                        position=pos, desc=name)
         agent = Agent(self.prior.copy(), self.len, self.batch)
         seen = []
         corrs = []
         top10 = []
-        pbar = tqdm(total=min(len(data) // self.batch * self.batch, cutoff * self.batch))
         while len(data) > self.batch and (cutoff is None or len(corrs) < cutoff):
             sampled = agent.act(list(data.keys()))
             assert len(set(sampled)) == self.batch, "bad action"
