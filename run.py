@@ -1,6 +1,8 @@
 import os, argparse
 import dna.env
 import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import importlib
 import numpy as np

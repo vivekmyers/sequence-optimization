@@ -6,7 +6,7 @@ import agents.base
 from torch.distributions import Normal
 from torch import tensor
 
-def PseudoThompsonAgent(epochs=50, initial_epochs=None):
+def PseudoThompsonAgent(epochs=10, initial_epochs=None):
     '''Constructs agent with a CNN trained to predict gaussians with uncertainty, 
     using Thompson sampling with the network's uncertainty to select batches, and 
     refitting the model to update the predicted distributions between batches.

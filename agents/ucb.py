@@ -4,7 +4,7 @@ from models.bayesian import BayesianCNN
 from models.cnn import CNN
 import agents.base
 
-def UCBAgent(epochs=50, initial_epochs=None):
+def UCBAgent(epochs=10, initial_epochs=None):
     '''Constructs agent with a Bayesian CNN, using Thompson sampling with the
     network's uncertainty (over its parameters) to select the highest UCB
     sequences to test in terms of (mu + sigma), and refits the model

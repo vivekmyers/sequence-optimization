@@ -4,7 +4,7 @@ from models.bayesian import BayesianCNN
 from models.cnn import CNN
 import agents.base
 
-def ThompsonAgent(epochs=50, initial_epochs=None):
+def ThompsonAgent(epochs=10, initial_epochs=None):
     '''Constructs agent with a Bayesian CNN, using Thompson sampling with the
     network's uncertainty (over its parameters) to select batches, and 
     refitting the model to update the predicted distributions between batches.
