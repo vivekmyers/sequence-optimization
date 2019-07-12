@@ -51,6 +51,7 @@ class Embedding:
                 loss = torch.norm(Y - self.model(X.float()), 2) + self.lam * self.model.l2()
                 self.opt.zero_grad()
                 loss.backward()
+                nn.utils.clip_grad_norm_(self.model.parameters(), 1)
                 self.opt.step()
     
     def __call__(self, seqs):

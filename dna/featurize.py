@@ -3,6 +3,7 @@ import Bio.SeqUtils
 import numpy as np
 import itertools
 
+# number of additional features in encoded sequences besides 4 bases
 num_features = 68
 
 def count_gc(s):
@@ -30,6 +31,11 @@ def kmers(s, k=3):
     return features
         
 def encode(seq):
+    '''Convert DNA sequence [+-][ATCG]{N} into one-hot array
+    with shape [N, 4 + num_features], and with GC frequency,
+    melting temperature, molecular weight, and 3mer features 
+    appended.
+    '''
     arr = np.zeros([len(seq) - 1, 4 + num_features])
     arr[:, 4] = 1 if seq[0] == '-' else 0
     arr[:, 5] = count_gc(seq)

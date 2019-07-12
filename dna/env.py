@@ -60,7 +60,7 @@ class GuideEnv:
                 seen.append(data[seq])
                 del data[seq]
             predicted = np.array(agent.predict(self.val[0].copy()))
-            corrs.append(np.corrcoef(predicted, self.val[1])[0, 1])
+            corrs.append(np.nan_to_num(np.corrcoef(predicted, self.val[1])[0, 1]))
             top10.append(np.array(sorted(seen))[-10:].mean())
             pbar.update(self.batch)
         pbar.close()

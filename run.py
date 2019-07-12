@@ -9,6 +9,7 @@ import torch
 import signal
 sns.set_style('darkgrid')
 signal.signal(signal.SIGINT, lambda x, y: exit(1))
+np.seterr(divide='ignore', invalid='ignore')
 
 
 def make_plot(title, yaxis, data, loc):
