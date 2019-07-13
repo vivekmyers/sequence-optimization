@@ -1,14 +1,14 @@
-import os, argparse
-import dna.env
-import seaborn as sns
 import matplotlib
 matplotlib.use('Agg')
+import os, argparse
+import seaborn as sns
 import matplotlib.pyplot as plt
 import importlib
 import numpy as np
 import multiprocessing
 import torch
 import signal
+import dna.env
 sns.set_style('darkgrid')
 signal.signal(signal.SIGINT, lambda x, y: exit(1))
 np.seterr(divide='ignore', invalid='ignore')
@@ -30,20 +30,21 @@ def make_plot(title, yaxis, data, loc):
     plt.savefig(f'results/{loc}.png')
 
 def run_agent(args):
-    '''Run agent in provided environment, with given arguments.
-    '''
-    agent, env, pos, cutoff, noplot, maxsz, batch, pretrain, validation = args
+    '''Run agent in provided environment, with given arguments.'''
+    agent, env, pos, cutoff, noplot, maxsz, batch, pretrain, validation, nocorr, env_name = args
     name = agent + ' ' * (maxsz - len(agent))
     with torch.cuda.device(pos % torch.cuda.device_count()):
         corrs, top10 = env.run(eval(agent, mods, {}), cutoff, name, pos)
     try: os.mkdir(f'results/{agent}')
     except OSError: pass
     if not noplot:
-        make_plot(f'{agent}, batch={batch}', 'Correlation', [(corrs, None)], 
-                    f'{agent}/{agent}-batch={batch}-corr')
-        make_plot(f'{agent}, batch={batch}', 'Top 10 Average', [(top10, None)], 
-                    f'{agent}/{agent}-batch={batch}-top10')
-    np.save(f'results/{agent}/{agent}-batch={batch}.npy', dict(
+        if not nocorr:
+            make_plot(f'{agent}, batch={batch}, env={env_name}', 'Correlation', [(corrs, None)], 
+                        f'{agent}/{agent}-batch={batch}-{env_name}-corr')
+        make_plot(f'{agent}, batch={batch}, env={env_name}', 'Top 10 Average', [(top10, None)], 
+                    f'{agent}/{agent}-batch={batch}-{env_name}-top10')
+    np.save(f'results/{agent}/{agent}-batch={batch}-{env_name}.npy', dict(
+        env=env_name,
         agent=agent,
         batch=batch,
         pretrain=pretrain,
@@ -64,13 +65,12 @@ if __name__ == '__main__':
     parser.add_argument('--validation', type=float, default=0.2, help='validation data portion')
     parser.add_argument('--collect', action='store_true', help='collect into joint graphs')
     parser.add_argument('--noplot', action='store_true', help='do not save individual graphs')
+    parser.add_argument('--nocorr', action='store_true', help='do not compute prediction correlations')
+    parser.add_argument('--env', type=str, default='GuideEnv', help='environment to run agents')
 
     args = parser.parse_args()
 
-    env = dna.env.GuideEnv(batch=args.batch, 
-            initial='data/Azimuth/azimuth_preds.csv.gz' if args.pretrain else None, 
-            validation=args.validation, files=[f'data/DeepCRISPR/{f}' 
-                for f in os.listdir('data/DeepCRISPR') if f.endswith('.csv')])
+    env = eval(f'dna.env.{args.env}')(batch=args.batch, validation=args.validation, pretrain=args.pretrain, nocorr=args.nocorr)
 
     # Load agent modules
     files = [f for f in os.listdir('agents') if f.endswith('.py')]
@@ -84,18 +84,19 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool()
     collected = pool.map(run_agent, [(agent, env, pos, args.cutoff, args.noplot, 
                                         max(map(len, args.agents)), args.batch, 
-                                        args.pretrain, args.validation)
-                                        for pos, agent in enumerate(args.agents)])
+                                        args.pretrain, args.validation, args.nocorr,
+                                        args.env) for pos, agent in enumerate(args.agents)])
 
     # If collecting, make joint graph
     if args.collect and len(args.agents) > 1:
         loc = ",".join(args.agents)
         try: os.mkdir(f'results/{loc}')
         except OSError: pass
-        make_plot(f'Agent Performance, batch={args.batch}', 'Correlation', 
-                    [(datum, agent) for agent, datum, _ in collected],
-                    f'{loc}/{loc}-batch={args.batch}-corr')
-        make_plot(f'Agent Performance, batch={args.batch}', 'Top 10 Average', 
+        if not args.nocorr:
+            make_plot(f'Agent Performance, batch={args.batch}, env={args.env}', 'Correlation', 
+                        [(datum, agent) for agent, datum, _ in collected],
+                        f'{loc}/{loc}-batch={args.batch}-env={args.env}-corr')
+        make_plot(f'Agent Performance, batch={args.batch}, env={args.env}', 'Top 10 Average', 
                     [(datum, agent) for agent, _, datum in collected],
-                    f'{loc}/{loc}-batch={args.batch}-top10')
+                    f'{loc}/{loc}-batch={args.batch}-env={args.env}-top10')
 

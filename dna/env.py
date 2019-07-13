@@ -2,18 +2,23 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from random import *
+import pickle
+import os
 
 class GuideEnv:
     '''Stores labeled sequences, reserving some for validation, and runs agents on them.'''
 
-    def __init__(self, files, batch=1000, validation=0.2, initial=None):
+    def __init__(self, batch=1000, validation=0.2, pretrain=False, nocorr=False):
         '''Initialize environment.
         files: csv files to read data from
         batch: number of sequences selected per action
         validation: portion of sequences to save for validation
         initial: pretrain on given datafile
+        nocorr: do not compute correlations when running
         '''
         assert 0 <= validation < 1
+        files=[f'data/DeepCRISPR/{f}' for f in os.listdir('data/DeepCRISPR') if f.endswith('.csv')]
+        initial = 'data/Azimuth/azimuth_preds.csv.gz' if pretrain else None
         dfs = list(map(pd.read_csv, files))
         data = [(strand + seq, score) for df in dfs
             for _, strand, seq, score in 
@@ -23,6 +28,7 @@ class GuideEnv:
         r = int(validation * len(data))
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
+        self.nocorr = nocorr
         # start agent with some portion of initial sequences
         if initial:
             df = pd.read_csv(initial, delimiter=r'\t', engine='python', compression='gzip')
@@ -59,10 +65,29 @@ class GuideEnv:
             for seq in sampled:
                 seen.append(data[seq])
                 del data[seq]
-            predicted = np.array(agent.predict(self.val[0].copy()))
-            corrs.append(np.nan_to_num(np.corrcoef(predicted, self.val[1])[0, 1]))
+            if not self.nocorr:
+                predicted = np.array(agent.predict(self.val[0].copy()))
+                corrs.append(np.nan_to_num(np.corrcoef(predicted, self.val[1])[0, 1]))
             top10.append(np.array(sorted(seen))[-10:].mean())
             pbar.update(self.batch)
         pbar.close()
         return np.array(corrs), np.array(top10)
-    
+
+
+class TestEnv(GuideEnv):
+    '''Simpler environment using flanking sequences.'''
+
+    def __init__(self, batch, validation, pretrain, nocorr):
+        df = pickle.load(open('data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
+        data = [*zip([f'+{x}' for x in df.index], df.values)]
+        dlen = 10000
+        self.prior = dict(data[dlen:]) if pretrain else {}
+        data = data[:dlen]
+        r = int(dlen * validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
+        self.len = len(data[0][0])
+        self.batch = batch
+        self.nocorr = nocorr
+
+
