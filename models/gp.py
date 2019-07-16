@@ -4,7 +4,7 @@ import os, sys
 import torch
 from torch import nn
 import torch.functional as F
-from models.embed import Embedding
+from models.embed import *
 from scipy.spatial.distance import pdist, cdist, squareform
 
 class GaussianProcess:
@@ -61,7 +61,7 @@ class GaussianProcess:
         '''
         super().__init__()
         self.X, self.Y = (), ()
-        self.embed = Embedding(encoder, dim, alpha=alpha, shape=shape, lam=lam)
+        self.embed = DeepFeatureEmbedding(encoder, dim, alpha=alpha, shape=shape, lam=lam)
         self.mu = mu
         self.sigma = sigma
         self.tau = tau

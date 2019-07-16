@@ -62,7 +62,7 @@ class BayesianCNN:
             shuffle(D)
             for mb in range(M):
 
-                # sample model weights from N(self.mu, self.rho)
+                # sample model weights from N(self.mu, self.sigma)
                 w = [n.rsample() for n in self.dist()]
 
                 # get minibatch of X values, and predicted (mu, sigma) for each Y 
@@ -70,13 +70,13 @@ class BayesianCNN:
                 X = self._process([x for x, y in Di])
                 Y = torch.tensor([y for x, y in Di]).to(self.device)
                 pred = self._model(w, X)
-                Y_mu, Y_rho = torch.sigmoid(pred[:, 0]), torch.log(1 + torch.exp(pred[:, 1]))
+                Y_mu, Y_sigma = torch.sigmoid(pred[:, 0]), torch.log(1 + torch.exp(pred[:, 1]))
 
                 # loss function
                 q_w = sum(n.log_prob(weight).sum() 
                         for weight, n in zip(w, self.dist())) # variational posterior
                 p_w = sum(Normal(0, 1).log_prob(weight).sum() for weight in w) # weights prior
-                p_D = Normal(Y_mu, Y_rho + self._eps).log_prob(Y).sum() # prediction loss
+                p_D = Normal(Y_mu, Y_sigma + self._eps).log_prob(Y).sum() # prediction loss
                 loss = (q_w - p_w) / M - p_D
                 loss = torch.clamp(loss, 0, 1 / self._eps)
 
@@ -84,7 +84,7 @@ class BayesianCNN:
                 if torch.isnan(loss):
                     continue
                 self.opt.zero_grad()
-                loss.backward(retain_graph=mb < M - 1)
+                loss.backward()
                 for weight in self.mu + self.rho:
                     # we clip gradients to avoid exploding logprobs
                     nn.utils.clip_grad_norm_(weight, 1)
