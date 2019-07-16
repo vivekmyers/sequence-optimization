@@ -29,29 +29,28 @@ def make_plot(title, yaxis, data, loc):
         plt.legend()
     plt.savefig(f'results/{loc}.png')
 
+
 def run_agent(args):
     '''Run agent in provided environment, with given arguments.'''
-    agent, env, pos, cutoff, noplot, maxsz, batch, pretrain, validation, nocorr, env_name = args
+    agent, env, pos, cutoff, maxsz, batch, pretrain, validation, nocorr, env_name = args
+    if not torch.cuda.is_available() and pos == 0: print('CUDA not available')
     name = agent + ' ' * (maxsz - len(agent))
-    with torch.cuda.device(pos % torch.cuda.device_count()):
+    if torch.cuda.is_available():
+        with torch.cuda.device(pos % torch.cuda.device_count()):
+            corrs, top10 = env.run(eval(agent, mods, {}), cutoff, name, pos)
+    else:
         corrs, top10 = env.run(eval(agent, mods, {}), cutoff, name, pos)
     try: os.mkdir(f'results/{agent}')
     except OSError: pass
-    if not noplot:
-        if not nocorr:
-            make_plot(f'{agent}, batch={batch}, env={env_name}', 'Correlation', [(corrs, None)], 
-                        f'{agent}/{agent}-batch={batch}-{env_name}-corr')
-        make_plot(f'{agent}, batch={batch}, env={env_name}', 'Top 10 Average', [(top10, None)], 
-                    f'{agent}/{agent}-batch={batch}-{env_name}-top10')
-    np.save(f'results/{agent}/{agent}-batch={batch}-{env_name}.npy', dict(
+    data = dict(
         env=env_name,
         agent=agent,
         batch=batch,
         pretrain=pretrain,
         validation=validation,
         correlations=corrs,
-        top10=top10))
-    return agent, corrs, top10
+        top10=top10)
+    return agent, corrs, top10, data
 
 
 if __name__ == '__main__':
@@ -63,10 +62,9 @@ if __name__ == '__main__':
     parser.add_argument('--cutoff', type=int, default=None, help='max number of batches to run')
     parser.add_argument('--pretrain', action='store_true', help='pretrain on azimuth data')
     parser.add_argument('--validation', type=float, default=0.2, help='validation data portion')
-    parser.add_argument('--collect', action='store_true', help='collect into joint graphs')
-    parser.add_argument('--noplot', action='store_true', help='do not save individual graphs')
     parser.add_argument('--nocorr', action='store_true', help='do not compute prediction correlations')
     parser.add_argument('--env', type=str, default='GuideEnv', help='environment to run agents')
+    parser.add_argument('--reps', type=int, default=1, help='number of trials to average')
 
     args = parser.parse_args()
 
@@ -82,21 +80,29 @@ if __name__ == '__main__':
 
     # Run agents
     pool = multiprocessing.Pool()
-    collected = pool.map(run_agent, [(agent, env, pos, args.cutoff, args.noplot, 
+    collected = np.array(pool.map(run_agent, [(agent, env, i * args.reps + j, args.cutoff, 
                                         max(map(len, args.agents)), args.batch, 
                                         args.pretrain, args.validation, args.nocorr,
-                                        args.env) for pos, agent in enumerate(args.agents)])
+                                        args.env) for i, agent in enumerate(args.agents)
+                                                  for j in range(args.reps)]))
 
-    # If collecting, make joint graph
-    if args.collect and len(args.agents) > 1:
-        loc = ",".join(args.agents)
-        try: os.mkdir(f'results/{loc}')
-        except OSError: pass
-        if not args.nocorr:
-            make_plot(f'Agent Performance, batch={args.batch}, env={args.env}', 'Correlation', 
-                        [(datum, agent) for agent, datum, _ in collected],
-                        f'{loc}/{loc}-batch={args.batch}-env={args.env}-corr')
-        make_plot(f'Agent Performance, batch={args.batch}, env={args.env}', 'Top 10 Average', 
-                    [(datum, agent) for agent, _, datum in collected],
-                    f'{loc}/{loc}-batch={args.batch}-env={args.env}-top10')
+    # Write output
+    loc = ",".join(args.agents)
+    try: os.mkdir(f'results/{loc}')
+    except OSError: pass
+    np.save(f'results/{loc}/{loc}-batch={args.batch}-env={args.env}-reps={args.reps}-top10.npy', 
+                [data for _, _, _, data in collected])
+    if not args.nocorr:
+        corrs = {}
+        for agent in collected[:, 0]:
+            corrs[agent] = np.array([d for a, d, _, _ in collected if a == agent]).mean(axis=0)
+        make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Correlation', 
+                    [(datum, agent) for agent, datum in corrs.items()],
+                    f'{loc}/{loc}-batch={args.batch}-env={args.env}-reps={args.reps}-corr')
+    top10s = {}
+    for agent in collected[:, 0]:
+        top10s[agent] = np.array([d for a, _, d, _ in collected if a == agent]).mean(axis=0)
+    make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Top 10 Average', 
+                [(datum, agent) for agent, datum in top10s.items()],
+                f'{loc}/{loc}-batch={args.batch}-env={args.env}-reps={args.reps}-top10')
 

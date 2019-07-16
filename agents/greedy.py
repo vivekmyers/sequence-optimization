@@ -20,7 +20,7 @@ def GreedyAgent(epochs=10, initial_epochs=None):
                                 minibatch=100)
         
         def act(self, seqs):
-            return list(zip(*sorted(zip(self.predict(seqs), seqs))[-self.batch:]))[1]
+            return list(zip(*sorted(zip(self.model.predict(seqs), seqs))[-self.batch:]))[1]
 
         def observe(self, data):
             super().observe(data)

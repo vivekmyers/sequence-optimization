@@ -26,7 +26,7 @@ class CNN:
             
             def forward(self, x):
                 filtered = self.conv_layers(x.permute(0, 2, 1))
-                return torch.squeeze(self.fc_layers(filtered.reshape(filtered.shape[0], -1)))
+                return torch.squeeze(self.fc_layers(filtered.reshape(filtered.shape[0], -1)), dim=1)
             
             def l2(self):
                 return sum(torch.norm(param, 2) for c in self.conv for param in c.parameters())
@@ -63,7 +63,6 @@ class CNN:
         '''
         super().__init__()
         if not torch.cuda.is_available():
-            print('CUDA not available')
             self.device = 'cpu'
         else:
             self.device = 'cuda'

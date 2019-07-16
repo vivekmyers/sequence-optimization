@@ -78,7 +78,6 @@ class Autoencoder:
         '''
         super().__init__()
         if not torch.cuda.is_available():
-            print('CUDA not available')
             self.device = 'cpu'
         else:
             self.device = 'cuda'

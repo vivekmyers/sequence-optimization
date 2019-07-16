@@ -4,6 +4,8 @@ from tqdm import tqdm
 from random import *
 import pickle
 import os
+from functools import partial
+
 
 class GuideEnv:
     '''Stores labeled sequences, reserving some for validation, and runs agents on them.'''
@@ -58,7 +60,7 @@ class GuideEnv:
         seen = []
         corrs = []
         top10 = []
-        while len(data) > self.batch and (cutoff is None or len(corrs) < cutoff):
+        while len(data) >= self.batch and (cutoff is None or len(corrs) < cutoff):
             sampled = agent.act(list(data.keys()))
             assert len(set(sampled)) == self.batch, "bad action"
             agent.observe({seq: data[seq] for seq in sampled})
@@ -77,7 +79,7 @@ class GuideEnv:
 class TestEnv(GuideEnv):
     '''Simpler environment using flanking sequences.'''
 
-    def __init__(self, batch, validation, pretrain, nocorr):
+    def __init__(self, batch, validation, pretrain=False, nocorr=False):
         df = pickle.load(open('data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
         data = [*zip([f'+{x}' for x in df.index], df.values)]
         shuffle(data)
@@ -91,4 +93,25 @@ class TestEnv(GuideEnv):
         self.batch = batch
         self.nocorr = nocorr
 
+
+class _GenericEnv(GuideEnv):
+
+    def __init__(self, data, prior, batch, validation, pretrain=False, nocorr=False):
+        data = pd.read_csv(data, header=None)
+        prior = pd.read_csv(prior, header=None) if pretrain and prior is not None else None
+        self.prior = dict(prior.values if prior is not None else [])
+        data = data.values
+        r = int(len(data) * validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
+        self.batch = batch
+        self.nocorr = nocorr
+        self.len = len(data[0][0])
+
+
+def GenericEnv(data, prior=None):
+    '''Parameterized environment built with arbitrary csv [sequence, score]
+    data and pretraining data files.
+    '''
+    return partial(_GenericEnv, data, prior)
 

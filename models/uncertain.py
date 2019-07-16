@@ -93,7 +93,6 @@ class UncertainCNN:
         '''Takes sequence encoding function, step size, and sequence shape.'''
         super().__init__()
         if not torch.cuda.is_available(): 
-            print('CUDA not available')
             self.device = 'cpu'
         else:
             self.device = 'cuda'
