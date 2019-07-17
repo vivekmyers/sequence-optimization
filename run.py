@@ -40,8 +40,6 @@ def run_agent(arg):
             corrs, top10, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
     else:
         corrs, top10, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
-    try: os.mkdir(f'results/{agent}')
-    except OSError: pass
     data = dict(
         env=args.env,
         agent=agent,

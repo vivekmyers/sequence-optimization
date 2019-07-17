@@ -79,7 +79,7 @@ class GuideEnv:
         return np.array(corrs), np.array(top10), np.array(regret)
 
 
-class TestEnv(GuideEnv):
+class FlankEnv(GuideEnv):
     '''Simpler environment using flanking sequences.'''
 
     def __init__(self, batch, validation, pretrain=False, nocorr=False):
