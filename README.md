@@ -10,7 +10,7 @@ e.g. `python run.py --agents 'RandomAgent(epochs=10)' 'GreedyAgent(epochs=10)' -
 
 # Flags
 
-`--env 'GenericEnv("datafile.csv")'`: use X, Y data in provided file.
+`--env 'GenericEnv("data/toy/20mer.csv")'`: use X, Y data in provided file.
 
 `--reps [N]`: average multiple trials.
 

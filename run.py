@@ -30,27 +30,28 @@ def make_plot(title, yaxis, data, loc):
     plt.savefig(f'results/{loc}.png')
 
 
-def run_agent(args):
+def run_agent(arg):
     '''Run agent in provided environment, with given arguments.'''
-    agent, env, pos, cutoff, maxsz, batch, pretrain, validation, nocorr, env_name = args
+    env, agent, pos, args = arg
     if not torch.cuda.is_available() and pos == 0: print('CUDA not available')
-    name = agent + ' ' * (maxsz - len(agent))
+    name = agent + ' ' * (max(map(len, args.agents)) - len(agent))
     if torch.cuda.is_available():
         with torch.cuda.device(pos % torch.cuda.device_count()):
-            corrs, top10 = env.run(eval(agent, mods, {}), cutoff, name, pos)
+            corrs, top10, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
     else:
-        corrs, top10 = env.run(eval(agent, mods, {}), cutoff, name, pos)
+        corrs, top10, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
     try: os.mkdir(f'results/{agent}')
     except OSError: pass
     data = dict(
-        env=env_name,
+        env=args.env,
         agent=agent,
-        batch=batch,
-        pretrain=pretrain,
-        validation=validation,
+        batch=args.batch,
+        pretrain=args.pretrain,
+        validation=args.validation,
         correlations=corrs,
-        top10=top10)
-    return agent, corrs, top10, data
+        top10=top10,
+        regret=regret)
+    return dict(agent=agent, corrs=corrs, top10=top10, regret=regret, data=data)
 
 
 if __name__ == '__main__':
@@ -68,7 +69,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    env = eval(f'dna.env.{args.env}')(batch=args.batch, validation=args.validation, pretrain=args.pretrain, nocorr=args.nocorr)
+    env = eval(f'{args.env}', dna.env.__dict__, {})(batch=args.batch, validation=args.validation, pretrain=args.pretrain, nocorr=args.nocorr)
 
     # Load agent modules
     files = [f for f in os.listdir('agents') if f.endswith('.py')]
@@ -80,29 +81,33 @@ if __name__ == '__main__':
 
     # Run agents
     pool = multiprocessing.Pool()
-    collected = np.array(pool.map(run_agent, [(agent, env, i * args.reps + j, args.cutoff, 
-                                        max(map(len, args.agents)), args.batch, 
-                                        args.pretrain, args.validation, args.nocorr,
-                                        args.env) for i, agent in enumerate(args.agents)
-                                                  for j in range(args.reps)]))
+    collected = pool.map(run_agent, [(env, agent, i * args.reps + j, args) 
+                            for i, agent in enumerate(args.agents)
+                            for j in range(args.reps)])
 
     # Write output
     loc = ",".join(args.agents)
     try: os.mkdir(f'results/{loc}')
     except OSError: pass
-    np.save(f'results/{loc}/{loc}-batch={args.batch}-env={args.env}-reps={args.reps}-top10.npy', 
-                [data for _, _, _, data in collected])
+    np.save(f'results/{loc}/results.npy', 
+                [x['data'] for x in collected])
     if not args.nocorr:
         corrs = {}
-        for agent in collected[:, 0]:
-            corrs[agent] = np.array([d for a, d, _, _ in collected if a == agent]).mean(axis=0)
+        for agent in [x['agent'] for x in collected]:
+            corrs[agent] = np.array([x['corrs'] for x in collected if x['agent'] == agent]).mean(axis=0)
         make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Correlation', 
                     [(datum, agent) for agent, datum in corrs.items()],
-                    f'{loc}/{loc}-batch={args.batch}-env={args.env}-reps={args.reps}-corr')
+                    f'{loc}/corr')
     top10s = {}
-    for agent in collected[:, 0]:
-        top10s[agent] = np.array([d for a, _, d, _ in collected if a == agent]).mean(axis=0)
+    for agent in [x['agent'] for x in collected]:
+        top10s[agent] = np.array([x['top10'] for x in collected if x['agent'] == agent]).mean(axis=0)
     make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Top 10 Average', 
                 [(datum, agent) for agent, datum in top10s.items()],
-                f'{loc}/{loc}-batch={args.batch}-env={args.env}-reps={args.reps}-top10')
+                f'{loc}/top10')
+    regrets = {}
+    for agent in [x['agent'] for x in collected]:
+        regrets[agent] = np.array([x['regret'] for x in collected if x['agent'] == agent]).mean(axis=0)
+    make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Regret', 
+                [(datum, agent) for agent, datum in regrets.items()],
+                f'{loc}/regret')
 

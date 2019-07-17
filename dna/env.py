@@ -60,10 +60,13 @@ class GuideEnv:
         seen = []
         corrs = []
         top10 = []
-        while len(data) >= self.batch and (cutoff is None or len(corrs) < cutoff):
+        regret = []
+        while len(data) >= self.batch and (cutoff is None or len(top10) < cutoff):
             sampled = agent.act(list(data.keys()))
             assert len(set(sampled)) == self.batch, "bad action"
             agent.observe({seq: data[seq] for seq in sampled})
+            regret.append(([0.] + regret)[-1] + \
+                    sum(sorted(data.values())[-self.batch:]) - sum(data[seq] for seq in sampled))
             for seq in sampled:
                 seen.append(data[seq])
                 del data[seq]
@@ -73,7 +76,7 @@ class GuideEnv:
             top10.append(np.array(sorted(seen))[-10:].mean())
             pbar.update(self.batch)
         pbar.close()
-        return np.array(corrs), np.array(top10)
+        return np.array(corrs), np.array(top10), np.array(regret)
 
 
 class TestEnv(GuideEnv):
