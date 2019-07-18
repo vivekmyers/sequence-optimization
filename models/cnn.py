@@ -20,16 +20,16 @@ class CNN:
                 self.conv_layers = nn.Sequential(
                     conv[0], nn.ReLU(), conv[1], nn.ReLU(),
                     conv[2], nn.ReLU()) 
+                fc = self.fc = [nn.Linear(32 * shape[0], 100), nn.Linear(100, 1)]
                 self.fc_layers = nn.Sequential(
-                    nn.Linear(32 * shape[0], 100), nn.ReLU(), 
-                    nn.Dropout(0.5), nn.Linear(100, 1), nn.Sigmoid())
+                    fc[0], nn.ReLU(), nn.Dropout(0.5), fc[1], nn.Sigmoid())
             
             def forward(self, x):
                 filtered = self.conv_layers(x.permute(0, 2, 1))
                 return torch.squeeze(self.fc_layers(filtered.reshape(filtered.shape[0], -1)), dim=1)
             
             def l2(self):
-                return sum(torch.norm(param, 2) for c in self.conv for param in c.parameters())
+                return sum(torch.sum(param ** 2) for c in self.conv for param in c.parameters())
 
         self.model = Model().to(self.device)
 
@@ -40,8 +40,9 @@ class CNN:
         for ep in range(epochs):
             shuffle(D)
             for mb in range(M):
-                X, Y = map(lambda t: torch.tensor(t).to(self.device), zip(*D[mb * minibatch : (mb + 1) * minibatch]))
-                loss = torch.norm(Y - self.model(X.float()), 2) + self.lam * self.model.l2()
+                X, Y = map(lambda t: torch.tensor(t).to(self.device).float(), 
+                                zip(*D[mb * minibatch : (mb + 1) * minibatch]))
+                loss = torch.sum((Y - self.model(X)) ** 2) + self.lam * self.model.l2()
                 self.opt.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.model.parameters(), 1)
@@ -55,7 +56,7 @@ class CNN:
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, encoder, alpha=1e-4, shape=(), lam=1e-3):
+    def __init__(self, encoder, alpha=5e-4, shape=(), lam=1e-3):
         '''encoder: convert sequences to one-hot arrays.
         alpha: learning rate.
         shape: sequence shape.

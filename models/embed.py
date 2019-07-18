@@ -25,7 +25,7 @@ class Embedding(ABC):
             for mb in range(M):
                 X, Y = map(lambda t: torch.tensor(t).to(self.device), 
                             zip(*D[mb * minibatch : (mb + 1) * minibatch]))
-                loss = torch.norm(Y - self.model(X.float()), 2) + self.lam * self.model.l2()
+                loss = torch.sum((Y - self.model(X.float())) ** 2) + self.lam * self.model.l2()
                 self.opt.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.model.parameters(), 1)
@@ -37,7 +37,7 @@ class Embedding(ABC):
                 torch.tensor([self.encode(seq) for seq in seqs])
                 .float().to(self.device)).detach().cpu().numpy()
 
-    def __init__(self, encoder, dim, shape=(), alpha=1e-4, lam=1e-3):
+    def __init__(self, encoder, dim, shape=(), alpha=5e-4, lam=1e-3):
         '''Embeds sequences encoded by encoder with learning rate alpha and l2 regularization lambda,
         fitting a function from embedding of dimension dim to the labels.
         '''
@@ -84,7 +84,7 @@ class DeepFeatureEmbedding(Embedding):
                 return self.fc_layers(filtered.reshape(filtered.shape[0], -1))
             
             def l2(self):
-                return sum(torch.norm(param, 2) for c in self.conv for param in c.parameters())
+                return sum(torch.sum(param ** 2) for c in self.conv for param in c.parameters())
     
         return Model()
 
@@ -123,7 +123,7 @@ class DeepLinearEmbedding(Embedding):
                 return self.fc_layers(filtered.reshape(filtered.shape[0], -1))
             
             def l2(self):
-                return sum(torch.norm(param, 2) for c in self.conv for param in c.parameters())
+                return sum(torch.sum(param ** 2) for c in self.conv for param in c.parameters())
         return Model()
 
     def __init__(self, *args, **kwargs):

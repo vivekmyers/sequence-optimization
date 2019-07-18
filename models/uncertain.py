@@ -89,7 +89,7 @@ class UncertainCNN:
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, encoder, alpha=1e-4, shape=()):
+    def __init__(self, encoder, alpha=5e-4, shape=()):
         '''Takes sequence encoding function, step size, and sequence shape.'''
         super().__init__()
         if not torch.cuda.is_available(): 

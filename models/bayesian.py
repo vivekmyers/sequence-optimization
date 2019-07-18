@@ -47,8 +47,7 @@ class BayesianCNN:
                         for x in self.mu] # scaled stdevs of model parameters
             
     def dist(self):
-        '''Returns list of model parameter distribution gaussians.
-        '''
+        '''Returns list of model parameter distribution gaussians.'''
         return [Normal(mu, rho.exp().add(1).log() + self._eps) for mu, rho in zip(self.mu, self.rho)]
 
     def fit(self, seqs, scores, epochs, minibatch):
@@ -114,7 +113,7 @@ class BayesianCNN:
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, encoder, alpha=1e-4, shape=(), sig_scale=0.5):
+    def __init__(self, encoder, alpha=5e-4, shape=(), sig_scale=0.5):
         '''Takes sequence encoding function, step size, sequence shape, and scaling 
         of initial weight stdevs.
         '''
