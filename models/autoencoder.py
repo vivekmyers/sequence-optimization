@@ -57,7 +57,7 @@ class Autoencoder:
                 X, Y = [torch.tensor(t).to(self.device).float() for t in zip(*D[mb * minibatch : (mb + 1) * minibatch])]
                 X_hat, Y_hat = self.decoder(self.encoder(X))
                 l2 = self.lam * (self.encoder.l2() + self.decoder.l2())
-                LX = torch.sum((X_hat - X.view(X_hat.shape)) ** 2) / X_hat.shape[1]
+                LX = torch.sum((X_hat.view(X.shape) - X) ** 2) / X_hat.shape[1] 
                 LY = torch.sum((Y_hat - Y) ** 2)
                 loss = LX * (1 - self.beta) + LY * self.beta + l2
                 self.opt.zero_grad()
@@ -78,7 +78,7 @@ class Autoencoder:
         D = torch.tensor([self.encode(x) for x in seqs]).to(self.device).float()
         return self.encoder(D).cpu().detach().numpy()
 
-    def __init__(self, encoder, shape, dim=5, beta=0., alpha=5e-4, lam=1e-3):
+    def __init__(self, encoder, shape, dim=5, beta=0., alpha=5e-4, lam=1e-6):
         '''encoder: convert sequences to one-hot arrays.
         dim: dimensionality of embedding.
         alpha: learning rate.

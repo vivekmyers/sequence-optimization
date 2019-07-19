@@ -64,6 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('--nocorr', action='store_true', help='do not compute prediction correlations')
     parser.add_argument('--env', type=str, default='GuideEnv', help='environment to run agents')
     parser.add_argument('--reps', type=int, default=1, help='number of trials to average')
+    parser.add_argument('--name', type=str, default=None, help='output directory')
 
     args = parser.parse_args()
 
@@ -84,7 +85,7 @@ if __name__ == '__main__':
                             for j in range(args.reps)])
 
     # Write output
-    loc = ",".join(args.agents)
+    loc = ",".join(args.agents) if args.name is None else args.name
     try: os.mkdir(f'results/{loc}')
     except OSError: pass
     np.save(f'results/{loc}/results.npy', 
