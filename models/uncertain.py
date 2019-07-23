@@ -21,8 +21,10 @@ class SeqConv(nn.Module):
         self.B3_conv = mk(32)
         self.W1_fc = mk(32 * length, 100)
         self.B1_fc = mk(100)
-        self.W2_fc = mk(100, 2)
-        self.B2_fc = mk(2)
+        self.W2_fc = mk(100, 100)
+        self.B2_fc = mk(100)
+        self.W3_fc = mk(100, 2)
+        self.B3_fc = mk(2)
 
     def forward(self, x):
         x = x.permute(0, 2, 1).to(dtype=torch.float)
@@ -31,7 +33,8 @@ class SeqConv(nn.Module):
         x = F.relu(F.conv1d(x, self.W3_conv, self.B3_conv, padding=1))
         x = x.reshape(x.shape[0], -1)
         x = F.relu(x @ self.W1_fc + self.B1_fc)
-        x = x @ self.W2_fc  + self.B2_fc
+        x = F.relu(x @ self.W2_fc + self.B2_fc)
+        x = x @ self.W3_fc + self.B3_fc
         return x
     
 

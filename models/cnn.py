@@ -20,9 +20,10 @@ class CNN:
                 self.conv_layers = nn.Sequential(
                     conv[0], nn.ReLU(), conv[1], nn.ReLU(),
                     conv[2], nn.ReLU()) 
-                fc = self.fc = [nn.Linear(32 * shape[0], 100), nn.Linear(100, 1)]
+                fc = self.fc = [nn.Linear(32 * shape[0], 100), nn.Linear(100, 100), nn.Linear(100, 1)]
                 self.fc_layers = nn.Sequential(
-                    fc[0], nn.ReLU(), nn.Dropout(0.5), fc[1], nn.Sigmoid())
+                    fc[0], nn.ReLU(), nn.Dropout(0.5), fc[1], nn.ReLU(), 
+                    nn.Dropout(0.5), fc[2], nn.Sigmoid())
             
             def forward(self, x):
                 filtered = self.conv_layers(x.permute(0, 2, 1))
