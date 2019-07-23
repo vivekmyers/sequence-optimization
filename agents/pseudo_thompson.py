@@ -2,11 +2,11 @@ import numpy as np
 from random import *
 from models.uncertain import UncertainCNN
 from models.cnn import CNN
-import agents.base
+import agents.random
 from torch.distributions import Normal
 from torch import tensor
 
-def PseudoThompsonAgent(epochs=10, initial_epochs=None):
+def PseudoThompsonAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with a CNN trained to predict gaussians with uncertainty, 
     using Thompson sampling with the network's uncertainty to select batches, and 
     refitting the model to update the predicted distributions between batches.
@@ -14,7 +14,7 @@ def PseudoThompsonAgent(epochs=10, initial_epochs=None):
     if initial_epochs is None:
         initial_epochs = epochs // 4
 
-    class Agent(agents.base.BaseAgent):
+    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
@@ -31,14 +31,5 @@ def PseudoThompsonAgent(epochs=10, initial_epochs=None):
             super().observe(data)
             self.model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=min(len(self.seen), 100))
         
-        def predict(self, seqs):
-            result = np.zeros([len(seqs)])
-            while not result.std():
-                model = CNN(encoder=self.encode, shape=self.shape)
-                if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
-                if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100)
-                result = model.predict(seqs)
-            return result
-
     return Agent
 

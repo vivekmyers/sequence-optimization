@@ -3,7 +3,7 @@ from random import *
 import agents.base
 from models.cnn import CNN
 
-def RandomAgent(epochs=10, initial_epochs=None):
+def RandomAgent(epochs=30, initial_epochs=None):
     '''Constructs agent that uses CNN to predict sequence values.
     Randomly selects new sequences to observe.
     '''

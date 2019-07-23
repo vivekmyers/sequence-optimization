@@ -21,9 +21,11 @@ class BayesianCNN:
         B3_cv = mk(32)
         W1_fc = mk(32 * length, 100)
         B1_fc = mk(100)
-        W2_fc = mk(100, 2)
-        B2_fc = mk(2)
-        return [W1_cv, B1_cv, W2_cv, B2_cv, W3_cv, B3_cv, W1_fc, B1_fc, W2_fc, B2_fc]
+        W2_fc = mk(100, 100)
+        B2_fc = mk(100)
+        W3_fc = mk(100, 2)
+        B3_fc = mk(2)
+        return [W1_cv, B1_cv, W2_cv, B2_cv, W3_cv, B3_cv, W1_fc, B1_fc, W2_fc, B2_fc, W3_fc, B3_fc]
                     
     def _model(self, w, x): # apply parameters w to input x
         x = x.permute(0, 2, 1).to(dtype=torch.float)
@@ -32,7 +34,8 @@ class BayesianCNN:
         x = F.relu(F.conv1d(x, w[4], w[5], padding=1))
         x = x.reshape(x.shape[0], -1)
         x = F.relu(x @ w[6] + w[7])
-        x = x @ w[8] + w[9]
+        x = F.relu(x @ w[8] + w[9])
+        x = x @ w[10] + w[11]
         return x
 
     def _make_net(self, shape, sig_scale):

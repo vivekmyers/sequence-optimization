@@ -2,9 +2,10 @@ import numpy as np
 from random import *
 import agents.random
 from models.cnn import CNN
+from models.autoencoder import Autoencoder
 
-def GreedyAgent(epochs=30, initial_epochs=None):
-    '''Constructs agent with CNN to predict sequence values that trains with each observation.
+def AutoGreedyAgent(epochs=30, initial_epochs=None):
+    '''Constructs agent with weighted autoencoder to predict sequence values that trains with each observation.
     Greedily selects sequences with best predicions.
     '''
     if initial_epochs is None:
@@ -14,9 +15,10 @@ def GreedyAgent(epochs=30, initial_epochs=None):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = CNN(encoder=self.encode, shape=self.shape)
+            self.model = Autoencoder(encoder=self.encode, 
+                                        shape=self.shape, beta=1.)
             if len(self.prior):
-                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, 
+                self.model.refit(*zip(*self.prior.items()), epochs=initial_epochs, 
                                 minibatch=100)
         
         def act(self, seqs):
@@ -24,7 +26,7 @@ def GreedyAgent(epochs=30, initial_epochs=None):
 
         def observe(self, data):
             super().observe(data)
-            self.model.fit(*zip(*self.seen.items()), epochs=epochs, 
+            self.model.refit(*zip(*self.seen.items()), epochs=epochs, 
                             minibatch=min(len(self.seen), 100))
         
     return Agent

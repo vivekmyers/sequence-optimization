@@ -2,9 +2,9 @@ import numpy as np
 from random import *
 from models.bayesian import BayesianCNN
 from models.cnn import CNN
-import agents.base
+import agents.random
 
-def ThompsonAgent(epochs=10, initial_epochs=None):
+def ThompsonAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with a Bayesian CNN, using Thompson sampling with the
     network's uncertainty (over its parameters) to select batches, and 
     refitting the model to update the predicted distributions between batches.
@@ -12,7 +12,7 @@ def ThompsonAgent(epochs=10, initial_epochs=None):
     if initial_epochs is None:
         initial_epochs = epochs // 4
 
-    class Agent(agents.base.BaseAgent):
+    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
@@ -28,14 +28,5 @@ def ThompsonAgent(epochs=10, initial_epochs=None):
             super().observe(data)
             self.model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=min(len(self.seen), 100))
         
-        def predict(self, seqs):
-            result = np.zeros([len(seqs)])
-            while not result.std():
-                model = CNN(encoder=self.encode, shape=self.shape)
-                if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
-                if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100)
-                result = model.predict(seqs)
-            return result
-
     return Agent
 
