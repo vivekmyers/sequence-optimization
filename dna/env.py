@@ -86,7 +86,7 @@ class FlankEnv(GuideEnv):
         df = pickle.load(open('data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
         data = [*zip([f'+{x}' for x in df.index], df.values)]
         shuffle(data)
-        dlen = 10000
+        dlen = 30000
         self.prior = dict(data[dlen:]) if pretrain else {}
         data = data[:dlen]
         r = int(dlen * validation)
