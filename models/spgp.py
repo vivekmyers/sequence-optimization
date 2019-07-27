@@ -50,9 +50,9 @@ class SparseGaussianProcess:
         K_star = K_vec(X_pred, X_bar)
         mu = torch.squeeze(self.mu + K_star @ torch.inverse(Q_M) @ K_MN @ \
                 torch.inverse(lam + I * sig.exp().add(1).log()) @ (Y[:, None] - self.mu), dim=1)
-        sig_sq = T([K(x, x) for x in X_pred]) - K_star @ (torch.inverse(K_M) - torch.inverse(Q_M)) \
-                @ K_star.permute(1, 0) + sig.exp().add(1).log()
-        return mu, torch.diag(sig_sq)
+        sig_sq = T([K(x, x) for x in X_pred]) - K_star.view(K_star.size(0), 1, K_star.size(1)).bmm(((torch.inverse(K_M) - torch.inverse(Q_M)) \
+                @ K_star.permute(1, 0)).transpose(0, 1).view(K_star.size(0), K_star.size(1), 1)).view(X_pred.size(0)) + sig.exp().add(1).log()
+        return mu, sig_sq
 
     def interpolate(self, x, prior={}):
         '''Given observed points in (self.X, self.Y) and points (X, Y) in prior.items(),
