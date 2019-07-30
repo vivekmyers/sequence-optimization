@@ -5,6 +5,7 @@ from random import *
 import pickle
 import os
 from functools import partial
+import dna.motif as motif
 
 
 class GuideEnv:
@@ -117,4 +118,25 @@ def GenericEnv(data, prior=None):
     data and pretraining data files.
     '''
     return partial(_GenericEnv, data, prior)
+
+
+class _MotifEnv(GuideEnv):
+
+    def __init__(self, N, lam, batch, validation, pretrain=False, nocorr=False):
+        data = motif.make_data(10000, N=N, lam=lam)
+        self.prior = {}
+        r = int(len(data) * validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
+        self.batch = batch
+        self.nocorr = nocorr
+        self.len = len(data[0][0])
+
+
+def MotifEnv(N=100, lam=3.):
+    '''Parameterized environment with sequences containing on average
+    lam motifs (which determine its scores). N motifs are present across
+    all sequences in the environment.
+    '''
+    return partial(_MotifEnv, N, lam)
 
