@@ -50,7 +50,7 @@ class GaussianProcess:
         return np.diagonal(sigma.cpu().numpy())
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    lam=1e-6, mu=0.5, sigma=0.5, tau=1, eps=0.01):
+                    lam=1e-5, mu=0.5, sigma=0.5, tau=1, eps=0.01):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)

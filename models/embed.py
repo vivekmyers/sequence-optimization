@@ -18,6 +18,7 @@ class Embedding(ABC):
 
     def refit(self, seqs, scores, epochs, minibatch):
         '''Refit embedding with labeled sequences.'''
+        self.model.train()
         D = list(zip([self.encode(x) for x in seqs], scores))
         M = len(D) // minibatch
         for ep in range(epochs):
@@ -30,9 +31,15 @@ class Embedding(ABC):
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.model.parameters(), 1)
                 self.opt.step()
+
+    def predict(self, seqs):
+        self.model.eval()
+        return self.model(torch.tensor([self.encode(seq) for seq in seqs]).float()
+                    .to(self.device)).detach().cpu().numpy()
     
     def __call__(self, seqs):
         '''Embed list of sequences.'''
+        self.model.eval()
         return self.model.embed(
                 torch.tensor([self.encode(seq) for seq in seqs])
                 .float().to(self.device)).detach().cpu().numpy()
@@ -68,9 +75,9 @@ class DeepFeatureEmbedding(Embedding):
                 self.conv_layers = nn.Sequential(
                     conv[0], nn.ReLU(), conv[1], nn.ReLU(),
                     conv[2], nn.ReLU()) 
-                self.fc_layers = nn.Linear(32 * shape[0], dim)
-                self.score = nn.Sequential(nn.Linear(dim, 100), 
-                                nn.ReLU(), nn.Linear(100, 100),
+                self.fc_layers = nn.Sequential(nn.Dropout(0.5), nn.Linear(32 * shape[0], dim))
+                self.score = nn.Sequential(nn.Linear(dim, 100), nn.Dropout(0.5),
+                                nn.ReLU(), nn.Linear(100, 100), nn.Dropout(0.5),
                                 nn.ReLU(), nn.Linear(100, 1))
 
             def forward(self, x):
@@ -95,7 +102,6 @@ class DeepFeatureEmbedding(Embedding):
 class DeepLinearEmbedding(Embedding):
     '''Embed with second last layer.'''
 
-    
     def make_model(self, shape, dim):
 
         class Model(nn.Module):

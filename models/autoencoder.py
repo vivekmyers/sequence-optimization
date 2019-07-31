@@ -22,7 +22,7 @@ class Autoencoder:
                     conv[2], nn.ReLU()) 
                 fc = self.fc = [nn.Linear(32 * shape[0], 200), nn.Linear(200, dim)]
                 self.fc_layers = nn.Sequential(
-                    fc[0], nn.ReLU(), fc[1], nn.Sigmoid())
+                    fc[0], nn.Dropout(0.5), nn.ReLU(), fc[1], nn.Sigmoid())
             
             def forward(self, x):
                 filtered = self.conv_layers(x.permute(0, 2, 1))
@@ -49,6 +49,7 @@ class Autoencoder:
         self.decoder = Decoder().to(self.device)
 
     def refit(self, seqs, scores, epochs, minibatch):
+        self.encoder.train()
         D = [(self.encode(x), y) for x, y in zip(seqs, scores)]
         M = len(D) // minibatch
         for ep in range(epochs):
@@ -69,16 +70,18 @@ class Autoencoder:
 
     def predict(self, seqs):
         '''Predict scores using decoder.'''
+        self.encoder.eval()
         D = torch.tensor([self.encode(x) for x in seqs]).to(self.device).float()
         X, Y = self.decoder(self.encoder(D))
         return Y.cpu().detach().numpy()
     
     def __call__(self, seqs):
         '''Encode list of sequences.'''
+        self.encoder.eval()
         D = torch.tensor([self.encode(x) for x in seqs]).to(self.device).float()
         return self.encoder(D).cpu().detach().numpy()
 
-    def __init__(self, encoder, shape, dim=5, beta=0., alpha=5e-4, lam=1e-6):
+    def __init__(self, encoder, shape, dim=5, beta=0., alpha=5e-4, lam=5e-5):
         '''encoder: convert sequences to one-hot arrays.
         dim: dimensionality of embedding.
         alpha: learning rate.

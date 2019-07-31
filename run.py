@@ -65,6 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='GuideEnv', help='environment to run agents')
     parser.add_argument('--reps', type=int, default=1, help='number of trials to average')
     parser.add_argument('--name', type=str, default=None, help='output directory')
+    parser.add_argument('--cpus', type=int, default=multiprocessing.cpu_count(), help='number of agents to run concurrurently')
 
     args = parser.parse_args()
 
@@ -79,7 +80,7 @@ if __name__ == '__main__':
         mods.update(mod.__dict__)
 
     # Run agents
-    pool = multiprocessing.Pool()
+    pool = multiprocessing.Pool(processes=args.cpus)
     collected = pool.map(run_agent, [(env, agent, i * args.reps + j, args) 
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)])
