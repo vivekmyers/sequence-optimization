@@ -6,6 +6,7 @@ from torch import nn
 import torch.functional as F
 from models.autoencoder import Autoencoder
 from scipy.spatial.distance import pdist, cdist, squareform
+from models.embed import *
 
 class GaussianProcess:
     '''Fits gaussian process model to sequence data using a deep kernel function.'''
@@ -65,6 +66,18 @@ class GaussianProcess:
         super().__init__()
         self.X, self.Y = (), ()
         self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, lam=lam, beta=beta)
+        self.mu = mu
+        self.sigma = sigma
+        self.tau = tau
+        self.eps = eps
+
+class FeautureGaussianProcess(GaussianProcess):
+
+    def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4,
+                    lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=0.01):
+        super().__init__()
+        self.X, self.Y = (), ()
+        self.embed = DeepFeatureEmbedding(encoder, dim=dim, alpha=alpha, shape=shape, lam=lam)
         self.mu = mu
         self.sigma = sigma
         self.tau = tau

@@ -52,3 +52,15 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.01, beta=0.02, k=
         
     return Agent
 
+def FeatureGaussianAgent(*args):
+
+    class Agent(GaussianAgent(*args)):
+
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.model = FeautureGaussianProcess(encoder=self.encode, dim=dim, shape=self.shape,
+                                            tau=tau, beta=beta, eps=0.01)
+            if len(self.prior):
+                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs,
+                                        minibatch=100)
+    return Agent
