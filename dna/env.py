@@ -122,8 +122,9 @@ def GenericEnv(data, prior=None):
 
 class _MotifEnv(GuideEnv):
 
-    def __init__(self, N, lam, batch, validation, pretrain=False, nocorr=False):
-        data = motif.make_data(10000, N=N, lam=lam)
+    def __init__(self, N, lam, gamma, comp, batch, validation, pretrain=False, nocorr=False):
+        dlen = 30000
+        data = motif.make_data(dlen, N=N, lam=lam, gamma=gamma, comp=comp)
         self.prior = {}
         r = int(len(data) * validation)
         self.env = dict(data[r:])
@@ -133,10 +134,12 @@ class _MotifEnv(GuideEnv):
         self.len = len(data[0][0])
 
 
-def MotifEnv(N=100, lam=3.):
+def MotifEnv(N=100, lam=3., gamma=5, comp=0.5):
     '''Parameterized environment with sequences containing on average
     lam motifs (which determine its scores). N motifs are present across
     all sequences in the environment.
+    gamma: scales with sparsity of good sequences.
+    comp: scales with stochasticity of PWMs used to make motifs.
     '''
-    return partial(_MotifEnv, N, lam)
+    return partial(_MotifEnv, N, lam, gamma, comp)
 

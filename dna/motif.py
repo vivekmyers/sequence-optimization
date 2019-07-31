@@ -1,9 +1,9 @@
 import numpy as np
 from random import *
 
-def make_motif(sz):
-    '''Get Cauchy sampled PWM of provided size.'''
-    arr = np.abs(np.random.standard_cauchy(4 * sz).reshape([sz, 4]))
+def make_motif(sz, comp):
+    '''Get Cauchy sampled PWM of provided size and complexity from (0, 1].'''
+    arr = np.abs(np.random.standard_cauchy(4 * sz).reshape([sz, 4])) ** (1 / comp)
     return arr / arr.sum(axis=1)[:, np.newaxis]
 
 def seq(m):
@@ -31,13 +31,22 @@ def gen_seq(length, motifs, rates, lam):
     sign = choice('+-')
     return sign + ''.join(s if sign == '+' else invert(s)), r
 
-def make_data(batch, lam=3., N=100):
+def make_data(batch, lam=3., N=100, gamma=5, comp=0.5):
     '''Return batch datapoints, each with lam motifs on average.
-    Uses a pool of N motifs across the data.
+    Uses a pool of N motifs across the data. Higher gamma
+    corresponds to fewer high-value sequences and comp
+    scales directly with the randomness of the PWMs.
     '''
-    motifs = [(make_motif(10), random()) for _ in range(N)]
+    motifs = [(make_motif(10, comp), random()) for _ in range(N)]
     data = []
     for k in range(batch):
         s = gen_seq(50, *zip(*motifs), lam)
-        data.append((s[0], 1 / (1 + np.exp(s[1].sum()))))
-    return data
+        data.append((s[0], s[1].sum()))
+    keys = [x[0] for x in sorted(data, key=lambda d: -d[1])]
+    rate, r = 1 / batch, 1.
+    results = []
+    for k in keys:
+        results.append((k, r))
+        r *= (1 - rate) ** gamma
+    shuffle(results)
+    return results
