@@ -66,8 +66,9 @@ class GuideEnv:
             sampled = agent.act(list(data.keys()))
             assert len(set(sampled)) == self.batch, "bad action"
             agent.observe({seq: data[seq] for seq in sampled})
-            regret.append(([0.] + regret)[-1] + \
-                    sum(sorted(data.values())[-self.batch:]) - sum(data[seq] for seq in sampled))
+            r_star = sum(sorted(data.values())[-self.batch // 5:])
+            r = sum(sorted([data[seq] for seq in sampled])[-self.batch // 5:])
+            regret.append(([0.] + regret)[-1] + r_star - r)
             for seq in sampled:
                 seen.append(data[seq])
                 del data[seq]

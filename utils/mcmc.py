@@ -2,10 +2,12 @@ import numpy as np
 from random import sample, choice, random
 from scipy.spatial.distance import cdist, pdist, squareform
 
+
 def cost(pts):
     dist = squareform(pdist(pts))
     dist[np.arange(len(pts)), np.arange(len(pts))] = np.inf
     return np.exp(-dist).sum()
+
 
 def mcmc(k, em, iters, T=0, lam=1.):
     '''Given points in em, selects k maximally separated points
