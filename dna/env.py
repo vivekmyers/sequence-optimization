@@ -135,7 +135,7 @@ class _MotifEnv(GuideEnv):
         self.len = len(data[0][0])
 
 
-def MotifEnv(N=100, lam=3., gamma=5, comp=0.5):
+def MotifEnv(N=100, lam=1., gamma=5, comp=0.5):
     '''Parameterized environment with sequences containing on average
     lam motifs (which determine its scores). N motifs are present across
     all sequences in the environment.
