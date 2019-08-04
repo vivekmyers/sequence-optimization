@@ -144,3 +144,26 @@ def MotifEnv(N=100, lam=1., gamma=5, comp=0.5):
     '''
     return partial(_MotifEnv, N, lam, gamma, comp)
 
+
+class _ClusterEnv(GuideEnv):
+
+    def __init__(self, N, comp, batch, validation, pretrain=False, nocorr=False):
+        dlen = 30000
+        self.len = 21
+        motifs = [(motif.make_motif(self.len - 1, comp), random() / 2 + 1 / 4, random() / 2) for _ in range(N)]
+        data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
+                    for m, mu, sigma in motifs for _ in range(dlen // N)]
+        self.prior = {}
+        r = int(len(data) * validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
+        self.batch = batch
+        self.nocorr = nocorr
+
+
+def ClusterEnv(N=100, comp=0.5):
+    '''Parameterized environment with sequences in N clusters all with the
+    same motif PWM.
+    comp: scales with stochasticity of PWMs used to make motifs.
+    '''
+    return partial(_ClusterEnv, N, comp)
