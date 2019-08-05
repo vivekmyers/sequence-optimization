@@ -123,9 +123,9 @@ def GenericEnv(data, prior=None):
 
 class _MotifEnv(GuideEnv):
 
-    def __init__(self, N, lam, gamma, comp, batch, validation, pretrain=False, nocorr=False):
+    def __init__(self, N, lam, comp, var, batch, validation, pretrain=False, nocorr=False):
         dlen = 30000
-        data = motif.make_data(dlen, N=N, lam=lam, gamma=gamma, comp=comp)
+        data = motif.make_data(dlen, N=N, lam=lam, comp=comp, var=var)
         self.prior = {}
         r = int(len(data) * validation)
         self.env = dict(data[r:])
@@ -135,14 +135,14 @@ class _MotifEnv(GuideEnv):
         self.len = len(data[0][0])
 
 
-def MotifEnv(N=100, lam=1., gamma=5, comp=0.5):
+def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
     '''Parameterized environment with sequences containing on average
     lam motifs (which determine its scores). N motifs are present across
     all sequences in the environment.
-    gamma: scales with sparsity of good sequences.
     comp: scales with stochasticity of PWMs used to make motifs.
+    var: max motif score variance
     '''
-    return partial(_MotifEnv, N, lam, gamma, comp)
+    return partial(_MotifEnv, N, lam, comp, var)
 
 
 class _ClusterEnv(GuideEnv):
@@ -150,7 +150,7 @@ class _ClusterEnv(GuideEnv):
     def __init__(self, N, comp, var, batch, validation, pretrain=False, nocorr=False):
         dlen = 30000
         self.len = 21
-        motifs = [(motif.make_motif(self.len - 1, comp), random() / 2 + 1 / 4, random() * var) for _ in range(N)]
+        motifs = [(motif.make_motif(self.len - 1, comp), random() - 1 / 2, random() * var) for _ in range(N)]
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
                     for m, mu, sigma in motifs for _ in range(dlen // N)]
         shuffle(data)
