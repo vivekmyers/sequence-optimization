@@ -153,6 +153,7 @@ class _ClusterEnv(GuideEnv):
         motifs = [(motif.make_motif(self.len - 1, comp), random() / 2 + 1 / 4, random() / 2) for _ in range(N)]
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
                     for m, mu, sigma in motifs for _ in range(dlen // N)]
+        shuffle(data)
         self.prior = {}
         r = int(len(data) * validation)
         self.env = dict(data[r:])
