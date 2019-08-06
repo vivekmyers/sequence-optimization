@@ -30,8 +30,9 @@ class Bucketer:
         dist = [Normal(mu, 1 / (len(val) / sigma ** 2 + 1 / self.sigma ** 2)) for mu, sigma, val in zip(mus, sigmas, vals)]
         ret = []
         for i in range(n):
+            pred = model.predict(pts_em)
             sampled = np.argmax(np.array([d.sample().item()
-                        if len(np.array(pts)[model.predict(pts_em) == i]) else 0.
+                        if i in pred else 0.
                         for i, d in enumerate(dist)]))
             clust = np.array(pts)[model.predict(pts_em) == sampled]
             ret.append(clust[np.argmax(self.embed.predict(clust))])
