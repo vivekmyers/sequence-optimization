@@ -1,6 +1,6 @@
 import numpy as np
 from random import *
-from models.bayesian import BayesianCNN
+from models.fixed_bayesian import BayesianCNN
 from models.cnn import CNN
 import agents.random
 
@@ -21,7 +21,7 @@ def ThompsonAgent(epochs=30, initial_epochs=None):
                 self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
         
         def act(self, seqs):
-            mu, sigma = self.model.sample(seqs)
+            mu = self.model.sample(seqs)
             return list(zip(*sorted(zip(mu, seqs))[-self.batch:]))[1]
 
         def observe(self, data):

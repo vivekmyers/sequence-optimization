@@ -5,7 +5,7 @@ from models.bucket import Bucketer
 from models.cnn import CNN
 import utils.mcmc
 
-def BucketAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k=1.):
+def BucketAgent(epochs=30, initial_epochs=None, dim=4, beta=0.5, k=1.):
     '''Constructs agent that autoencoder bucketing to thompson sample for sequences.
     dim: embedding shape
     beta: relative weight of sequence score in generating embedding.

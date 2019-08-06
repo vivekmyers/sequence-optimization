@@ -17,7 +17,7 @@ def SeparationAgent(epochs=30, initial_epochs=None, k=1., dim=5):
         def __init__(self, *args):
             super().__init__(*args)
             self.model = CNN(encoder=self.encode, shape=self.shape)
-            self.embed = models.autoencoder.Autoencoder(self.encode, shape=self.shape, dim=dim, beta=0.5, lam=1e-6)
+            self.embed = models.autoencoder.Autoencoder(self.encode, shape=self.shape, dim=dim, beta=0.5)
             if len(self.prior):
                 self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, 
                                 minibatch=100)

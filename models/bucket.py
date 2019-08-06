@@ -27,9 +27,7 @@ class Bucketer:
            vals[idx].append(val)
         mus = np.array([np.array(x).mean() if x else 0 for x in vals])
         sigmas = np.array([np.array(x).std() if x else 1 for x in vals])
-        dist = [Normal(mu * self.sigma **  2 / (self.sigma ** 2 + sigma ** 2 / len(mus)) + \
-                self.mu * sigma ** 2 / (sigma ** 2 / len(mus) + self.sigma ** 2), \
-                1 / (1 / sigma ** 2 + 1 / self.sigma ** 2)) for mu, sigma in zip(mus, sigmas)]
+        dist = [Normal(mu, 1 / (len(val) / sigma ** 2 + 1 / self.sigma ** 2)) for mu, sigma, val in zip(mus, sigmas, vals)]
         ret = []
         for i in range(n):
             sampled = np.argmax(np.array([d.sample().item() for d in dist]))
@@ -44,23 +42,20 @@ class Bucketer:
 
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    lam=1e-6, sigma=0.5, mu=0.5, tau=1, eps=0.01, k=100):
+                    sigma=0.5, mu=0.5, k=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
         beta: embedding score weighting
         dim: embedding dimensionality
-        lam: l2 regularization constant
         mu: prior mean
         sigma: prior standard deviation
         k: cluster count
         '''
         super().__init__()
         self.X, self.Y = (), ()
-        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, lam=lam, beta=beta)
+        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, beta=beta)
         self.mu = mu
         self.sigma = sigma
-        self.tau = tau
-        self.eps = eps
         self.k = k
 

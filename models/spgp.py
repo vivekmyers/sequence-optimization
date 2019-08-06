@@ -71,7 +71,7 @@ class SparseGaussianProcess:
 
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    zeta=1e-2, lam=1e-6, mu=0.5, itr=200, M=1000, eps=1e-2):
+                    zeta=1e-2, lam=1e-6, mu=0.5, itr=200, M=1000, eps=1e-4):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         zeta: induced point ascent learning rate
