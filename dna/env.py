@@ -88,7 +88,7 @@ class FlankEnv(GuideEnv):
         df = pickle.load(open('data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
         data = [*zip([f'+{x}' for x in df.index], df.values)]
         shuffle(data)
-        dlen = 30000
+        dlen = 10000
         self.prior = dict(data[dlen:]) if pretrain else {}
         data = data[:dlen]
         r = int(dlen * validation)
@@ -124,7 +124,7 @@ def GenericEnv(data, prior=None):
 class _MotifEnv(GuideEnv):
 
     def __init__(self, N, lam, comp, var, batch, validation, pretrain=False, nocorr=False):
-        dlen = 30000
+        dlen = 10000
         data = motif.make_data(dlen, N=N, lam=lam, comp=comp, var=var)
         self.prior = {}
         r = int(len(data) * validation)
@@ -148,7 +148,7 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
 class _ClusterEnv(GuideEnv):
 
     def __init__(self, N, comp, var, batch, validation, pretrain=False, nocorr=False):
-        dlen = 30000
+        dlen = 10000
         self.len = 21
         motifs = [(motif.make_motif(self.len - 1, comp), random() - 1 / 2, random() * var) for _ in range(N)]
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
