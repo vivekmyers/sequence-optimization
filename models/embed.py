@@ -5,6 +5,7 @@ import torch
 from torch import nn
 import torch.functional as F
 from abc import ABC, abstractmethod
+import utils.model
 
 class Embedding(ABC):
     '''Base class for generating embeddings from sequences.'''
@@ -20,23 +21,25 @@ class Embedding(ABC):
         '''Refit embedding with labeled sequences.'''
         self.model.train()
         D = list(zip([self.encode(x) for x in seqs], scores))
-        M = len(D) // minibatch
+        M = len(D) // self.minibatch + bool(len(D) % self.minibatch)
         for ep in range(epochs):
             shuffle(D)
             for mb in range(M):
                 X, Y = map(lambda t: torch.tensor(t).to(self.device), 
-                            zip(*D[mb * minibatch : (mb + 1) * minibatch]))
+                            zip(*D[mb * self.minibatch : (mb + 1) * self.minibatch]))
                 loss = torch.sum((Y - self.model(X.float())) ** 2) + self.lam * self.model.l2()
                 self.opt.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.model.parameters(), 1)
                 self.opt.step()
 
+    @utils.model.batch
     def predict(self, seqs):
         self.model.eval()
         return self.model(torch.tensor([self.encode(seq) for seq in seqs]).float()
                     .to(self.device)).detach().cpu().numpy()
     
+    @utils.model.batch
     def __call__(self, seqs):
         '''Embed list of sequences.'''
         self.model.eval()
@@ -44,7 +47,7 @@ class Embedding(ABC):
                 torch.tensor([self.encode(seq) for seq in seqs])
                 .float().to(self.device)).detach().cpu().numpy()
 
-    def __init__(self, encoder, dim, shape=(), alpha=5e-4, lam=1e-3):
+    def __init__(self, encoder, dim, shape=(), alpha=5e-4, lam=1e-3, minibatch=100):
         '''Embeds sequences encoded by encoder with learning rate alpha and l2 regularization lambda,
         fitting a function from embedding of dimension dim to the labels.
         '''
@@ -53,6 +56,7 @@ class Embedding(ABC):
             self.device = 'cpu'
         else:
             self.device = 'cuda'
+        self.minibatch = minibatch
         self.encode = encoder
         self.lam = lam
         self.alpha = alpha

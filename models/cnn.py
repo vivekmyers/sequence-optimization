@@ -4,6 +4,7 @@ import os, sys
 import torch
 from torch import nn
 import torch.functional as F
+import utils.model
 
 class CNN:
     '''CNN with regularization for making simple sequence score predictions.'''
@@ -34,21 +35,22 @@ class CNN:
 
         self.model = Model().to(self.device)
 
-    def fit(self, seqs, scores, epochs, minibatch):
+    def fit(self, seqs, scores, epochs):
         self.model.train()
         D = list(zip([self.encode(x) for x in seqs], scores))
-        M = len(D) // minibatch
+        M = len(D) // self.minibatch + bool(len(D) % self.minibatch)
         for ep in range(epochs):
             shuffle(D)
             for mb in range(M):
                 X, Y = map(lambda t: torch.tensor(t).to(self.device).float(), 
-                                zip(*D[mb * minibatch : (mb + 1) * minibatch]))
+                                zip(*D[mb * self.minibatch : (mb + 1) * self.minibatch]))
                 loss = torch.sum((Y - self.model(X)) ** 2) + self.lam * self.model.l2()
                 self.opt.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.model.parameters(), 1)
                 self.opt.step()
     
+    @utils.model.batch
     def predict(self, seqs):
         self.model.eval()
         return self.model(torch.tensor(
@@ -57,7 +59,7 @@ class CNN:
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, encoder, alpha=5e-4, shape=(), lam=1e-3):
+    def __init__(self, encoder, alpha=5e-4, shape=(), lam=1e-3, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: learning rate.
         shape: sequence shape.
@@ -68,6 +70,7 @@ class CNN:
             self.device = 'cpu'
         else:
             self.device = 'cuda'
+        self.minibatch = minibatch
         self.encode = encoder
         self.lam = lam
         self.alpha = alpha

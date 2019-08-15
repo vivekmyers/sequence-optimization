@@ -20,7 +20,7 @@ def PseudoThompsonAgent(epochs=30, initial_epochs=None):
             super().__init__(*args)
             self.model = UncertainCNN(encoder=self.encode, shape=self.shape)
             if len(self.prior):
-                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
+                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs)
             
         def act(self, seqs):
             mu, sigma = map(tensor, self.model.predict(seqs))
@@ -29,7 +29,7 @@ def PseudoThompsonAgent(epochs=30, initial_epochs=None):
 
         def observe(self, data):
             super().observe(data)
-            self.model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=min(len(self.seen), 100))
+            self.model.fit(*zip(*self.seen.items()), epochs=epochs)
         
     return Agent
 

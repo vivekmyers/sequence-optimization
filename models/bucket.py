@@ -12,10 +12,10 @@ from sklearn.cluster import KMeans
 class Bucketer:
     '''Buckets and samples from embedded sequences with TS.'''
 
-    def fit(self, seqs, scores, epochs, minibatch):
+    def fit(self, seqs, scores, epochs):
         self.X = seqs[:]
         self.Y = scores[:]
-        self.embed.refit(self.X, self.Y, epochs, minibatch)
+        self.embed.refit(self.X, self.Y, epochs)
 
     def sample(self, pts, n):
         pts = pts[:]
@@ -42,7 +42,7 @@ class Bucketer:
 
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    sigma=0.5, mu=0.5, k=100):
+                    sigma=0.5, mu=0.5, k=100, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
@@ -54,7 +54,8 @@ class Bucketer:
         '''
         super().__init__()
         self.X, self.Y = (), ()
-        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, beta=beta)
+        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, 
+                        shape=shape, beta=beta, minibatch=minibatch)
         self.mu = mu
         self.sigma = sigma
         self.k = k

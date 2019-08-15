@@ -19,8 +19,7 @@ def SeparationAgent(epochs=30, initial_epochs=None, k=1., dim=5):
             self.model = CNN(encoder=self.encode, shape=self.shape)
             self.embed = models.autoencoder.Autoencoder(self.encode, shape=self.shape, dim=dim, beta=0.5)
             if len(self.prior):
-                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs, 
-                                minibatch=100)
+                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             selections = np.array(list(zip(*sorted(zip(self.model.predict(seqs), seqs))[-int(k * self.batch):]))[1])
@@ -31,10 +30,8 @@ def SeparationAgent(epochs=30, initial_epochs=None, k=1., dim=5):
 
         def observe(self, data):
             super().observe(data)
-            self.model.fit(*zip(*self.seen.items()), epochs=epochs, 
-                            minibatch=min(len(self.seen), 100))
-            self.embed.refit(*zip(*self.seen.items()), epochs=epochs, 
-                            minibatch=min(len(self.seen), 100))
+            self.model.fit(*zip(*self.seen.items()), epochs=epochs) 
+            self.embed.refit(*zip(*self.seen.items()), epochs=epochs) 
         
     return Agent
 

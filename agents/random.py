@@ -25,8 +25,8 @@ def RandomAgent(epochs=30, initial_epochs=None):
             result = np.zeros([len(seqs)])
             while not result.std():
                 model = CNN(encoder=self.encode, shape=self.shape)
-                if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs, minibatch=100)
-                if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs, minibatch=100)
+                if self.prior: model.fit(*zip(*self.prior.items()), epochs=initial_epochs)
+                if self.seen: model.fit(*zip(*self.seen.items()), epochs=epochs)
                 result = model.predict(seqs)
             return result
 

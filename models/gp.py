@@ -7,25 +7,24 @@ import torch.functional as F
 from models.autoencoder import Autoencoder
 from scipy.spatial.distance import pdist, cdist, squareform
 from models.embed import *
+import utils.model
 
 class GaussianProcess:
     '''Fits gaussian process model to sequence data using a deep kernel function.'''
 
-    def fit(self, seqs, scores, epochs, minibatch):
+    def fit(self, seqs, scores, epochs):
         self.X = seqs[:]
         self.Y = scores[:]
-        self.embed.refit(self.X, self.Y, epochs, minibatch)
+        self.embed.refit(self.X, self.Y, epochs)
 
-    def interpolate(self, x, prior={}):
-        '''Given observed points in (self.X, self.Y) and points (X, Y) in prior.items(),
+    @utils.model.batch
+    def interpolate(self, x):
+        '''Given observed points in (self.X, self.Y),
         fit gaussian process regression and return means predicted for each
         provided point in x.
         '''
         X = [*self.X]
         Y = [*self.Y]
-        for a, b in prior.items():
-            X.append(a)
-            Y.append(b)
         if len(X) == 0 or len(x) == 0:
             return np.full([len(x)], self.mu)
         X, Y, x = map(np.array, [X, Y, x])
@@ -37,11 +36,12 @@ class GaussianProcess:
             torch.eye(len(X)).to(self.embed.device).double() * self.eps) @ (T(Y)[:, None] - self.mu))
         return mu.cpu().numpy()
 
-    def uncertainty(self, x, prior={}):
-        '''Given observed points in self.X and keys X in prior.keys(), fits gaussian
+    @utils.model.batch
+    def uncertainty(self, x):
+        '''Given observed points in self.X, fits gaussian
         process regression and returns predicted sigmas for each point in x.
         '''
-        X = [*self.X] + [*prior.keys()]
+        X = [*self.X]
         if len(X) == 0 or len(x) == 0:
             return np.full([len(x)], self.sigma)
         X, x = map(self.embed, map(np.array, [X, x]))
@@ -53,7 +53,7 @@ class GaussianProcess:
         return np.diagonal(sigma.cpu().numpy())
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    lam=1e-5, mu=0.5, sigma=0.5, tau=1, eps=0.01):
+                    lam=1e-5, mu=0.5, sigma=0.5, tau=1, eps=0.01, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
@@ -67,7 +67,8 @@ class GaussianProcess:
         '''
         super().__init__()
         self.X, self.Y = (), ()
-        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, lam=lam, beta=beta)
+        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, 
+                                    lam=lam, beta=beta, minibatch=minibatch)
         self.mu = mu
         self.sigma = sigma
         self.tau = tau
@@ -76,10 +77,11 @@ class GaussianProcess:
 class FeautureGaussianProcess(GaussianProcess):
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4,
-                    lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=1e-4):
+                    lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=1e-4, minibatch=100):
         super().__init__()
         self.X, self.Y = (), ()
-        self.embed = DeepFeatureEmbedding(encoder, dim=dim, alpha=alpha, shape=shape, lam=lam)
+        self.embed = DeepFeatureEmbedding(encoder, dim=dim, alpha=alpha, 
+                        shape=shape, lam=lam, minibatch=minibatch)
         self.mu = mu
         self.sigma = sigma
         self.tau = tau

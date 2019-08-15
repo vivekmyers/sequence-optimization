@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from random import shuffle
 import numpy as np
+import utils.model
 
 
 class SeqConv(nn.Module):
@@ -50,19 +51,19 @@ class UncertainCNN:
             else:
                 nn.init.normal_(param)
 
-    def fit(self, seqs, scores, epochs, minibatch):
+    def fit(self, seqs, scores, epochs):
         '''Fit encoded sequences to provided scores for provided epochs,
         sampling a model for each minibatch of the provided size.
         '''
         D = [(self.encode(x), y) for x, y in zip(seqs, scores)] # data tuples
-        M = len(D) // minibatch # number of minibatches
+        M = len(D) // self.minibatch + bool(len(D) % self.minibatch) # number of minibatches
 
         for ep in range(epochs):
             shuffle(D)
             for mb in range(M):
 
                 # get minibatch of X values, and predicted (mu, sigma) for each Y 
-                Di = D[mb * minibatch : (mb + 1) * minibatch]
+                Di = D[mb * self.minibatch : (mb + 1) * self.minibatch]
                 X = self._process([x for x, y in Di])
                 Y = torch.tensor([y for x, y in Di]).to(self.device)
                 pred = self.model(X)
@@ -80,7 +81,8 @@ class UncertainCNN:
                     # we clip gradients to avoid exploding logprobs
                     nn.utils.clip_grad_norm_(weight, 1)
                 self.opt.step()              
-                    
+            
+    @utils.model.batch
     def predict(self, seqs):
         '''Return (mus, sigmas) for the sequences describing a gaussian for the predicted
         scores of each one.
@@ -92,7 +94,7 @@ class UncertainCNN:
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, encoder, alpha=5e-4, shape=()):
+    def __init__(self, encoder, shape, alpha=5e-4, minibatch=100):
         '''Takes sequence encoding function, step size, and sequence shape.'''
         super().__init__()
         if not torch.cuda.is_available(): 
@@ -100,6 +102,7 @@ class UncertainCNN:
         else:
             self.device = 'cuda'
         self.alpha = alpha
+        self.minibatch = minibatch
         self._process = lambda x: torch.tensor(np.array(x), requires_grad=True).to(self.device)
         self._make_net(shape)
         self._eps = 1e-6

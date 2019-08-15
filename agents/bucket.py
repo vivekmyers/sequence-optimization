@@ -21,8 +21,7 @@ def BucketAgent(epochs=30, initial_epochs=None, dim=4, beta=0.5, k=1.):
             self.model = Bucketer(encoder=self.encode, dim=dim, shape=self.shape, 
                                             beta=beta, k=k)
             if len(self.prior):
-                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs, 
-                                        minibatch=100)
+                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             return self.model.sample(seqs, self.batch)
@@ -30,8 +29,7 @@ def BucketAgent(epochs=30, initial_epochs=None, dim=4, beta=0.5, k=1.):
 
         def observe(self, data):
             super().observe(data)
-            self.model.fit(*zip(*self.seen.items()), epochs=epochs, 
-                                minibatch=min(len(self.seen), 100))
+            self.model.fit(*zip(*self.seen.items()), epochs=epochs)
         
     return Agent
 

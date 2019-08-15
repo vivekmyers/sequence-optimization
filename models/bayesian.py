@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from random import shuffle
 import numpy as np
+import utils.model
 
 
 class BayesianCNN:
@@ -53,12 +54,12 @@ class BayesianCNN:
         '''Returns list of model parameter distribution gaussians.'''
         return [Normal(mu, rho.exp().add(1).log() + self._eps) for mu, rho in zip(self.mu, self.rho)]
 
-    def fit(self, seqs, scores, epochs, minibatch):
+    def fit(self, seqs, scores, epochs):
         '''Fit encoded sequences to provided scores for provided epochs,
         sampling a model for each minibatch of the provided size.
         '''
         D = [(self.encode(x), y) for x, y in zip(seqs, scores)] # data tuples
-        M = len(D) // minibatch # number of minibatches
+        M = len(D) // self.minibatch + bool(len(D) % self.minibatch) # number of minibatches
 
         for ep in range(epochs):
             shuffle(D)
@@ -68,7 +69,7 @@ class BayesianCNN:
                 w = [n.rsample() for n in self.dist()]
 
                 # get minibatch of X values, and predicted (mu, sigma) for each Y 
-                Di = D[mb * minibatch : (mb + 1) * minibatch]
+                Di = D[mb * self.minibatch : (mb + 1) * self.minibatch]
                 X = self._process([x for x, y in Di])
                 Y = torch.tensor([y for x, y in Di]).to(self.device)
                 pred = self._model(w, X)
@@ -94,6 +95,7 @@ class BayesianCNN:
                         weight.grad[torch.isnan(weight.grad)] = 0.
                 self.opt.step()
                     
+    @utils.model.batch
     def predict(self, seqs):
         '''Return (mus, sigmas) for the sequences describing a gaussian for the predicted
         scores of each one.
@@ -103,6 +105,7 @@ class BayesianCNN:
         return torch.sigmoid(result[:, 0]).detach().cpu().numpy(), \
                 result[:, 1].exp().add(1).log().detach().cpu().numpy()
     
+    @utils.model.batch
     def sample(self, seqs):
         '''Sample a model theta from the model distribution conditioned on all observed data,
         then return the (mus, sigmas) predicted by theta.
@@ -116,7 +119,7 @@ class BayesianCNN:
     def __call__(self, seqs):
         return self.predict(seqs)
 
-    def __init__(self, encoder, alpha=5e-4, shape=(), sig_scale=0.5):
+    def __init__(self, encoder, alpha=5e-4, shape=(), sig_scale=0.5, minibatch=100):
         '''Takes sequence encoding function, step size, sequence shape, and scaling 
         of initial weight stdevs.
         '''
@@ -125,6 +128,7 @@ class BayesianCNN:
             self.device = 'cpu'
         else:
             self.device = 'cuda'
+        self.minibatch = minibatch
         self.alpha = alpha
         self.encode = encoder
         self._eps = 1e-6

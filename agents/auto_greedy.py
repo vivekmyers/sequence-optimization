@@ -18,16 +18,14 @@ def AutoGreedyAgent(epochs=30, initial_epochs=None):
             self.model = Autoencoder(encoder=self.encode, 
                                         shape=self.shape, beta=1.)
             if len(self.prior):
-                self.model.refit(*zip(*self.prior.items()), epochs=initial_epochs, 
-                                minibatch=100)
+                self.model.refit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             return list(zip(*sorted(zip(self.model.predict(seqs), seqs))[-self.batch:]))[1]
 
         def observe(self, data):
             super().observe(data)
-            self.model.refit(*zip(*self.seen.items()), epochs=epochs, 
-                            minibatch=min(len(self.seen), 100))
+            self.model.refit(*zip(*self.seen.items()), epochs=epochs) 
         
     return Agent
 

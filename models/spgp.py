@@ -7,14 +7,15 @@ import torch.functional as F
 from torch.distributions import *
 from models.autoencoder import Autoencoder
 from scipy.spatial.distance import pdist, cdist, squareform
+import utils.model
 
 class SparseGaussianProcess:
     '''Fits gaussian process model using induced points.'''
 
-    def fit(self, seqs, scores, epochs, minibatch):
+    def fit(self, seqs, scores, epochs):
         self.X = seqs[:]
         self.Y = scores[:]
-        self.embed.refit(self.X, self.Y, epochs, minibatch)
+        self.embed.refit(self.X, self.Y, epochs)
 
     def _induce(self, X, M, Y, X_pred):
         n = len(X)
@@ -54,16 +55,14 @@ class SparseGaussianProcess:
                 @ K_star.permute(1, 0)).transpose(0, 1).view(K_star.size(0), K_star.size(1), 1)).view(X_pred.size(0)) + sig.exp().add(1).log()
         return mu, sig_sq
 
-    def interpolate(self, x, prior={}):
-        '''Given observed points in (self.X, self.Y) and points (X, Y) in prior.items(),
+    @utils.model.batch
+    def interpolate(self, x):
+        '''Given observed points in (self.X, self.Y),
         fit gaussian process regression and return mus, sigmas predicted for each
         provided point in x.
         '''
         X = [*self.X]
         Y = [*self.Y]
-        for a, b in prior.items():
-            X.append(a)
-            Y.append(b)
         if len(X) == 0 or len(x) == 0:
             return tuple(np.full([2, len(x)], self.mu))
         mu, sig_sq = self._induce(self.embed(X), min(self.M, len(X)), Y, self.embed(x))
@@ -71,7 +70,7 @@ class SparseGaussianProcess:
 
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    zeta=1e-2, lam=1e-6, mu=0.5, itr=200, M=1000, eps=1e-4):
+                    zeta=1e-2, lam=1e-6, mu=0.5, itr=200, M=1000, eps=1e-4, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         zeta: induced point ascent learning rate
@@ -86,7 +85,8 @@ class SparseGaussianProcess:
         '''
         super().__init__()
         self.X, self.Y = (), ()
-        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, lam=lam, beta=beta)
+        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, 
+                                    lam=lam, beta=beta, minibatch=minibatch)
         self.mu = mu
         self.dim = dim
         self.alpha = alpha

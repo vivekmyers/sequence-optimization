@@ -23,8 +23,7 @@ def SparseGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k=1., 
             self.model = SparseGaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, 
                                                 beta=beta, M=M)
             if len(self.prior):
-                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs, 
-                                        minibatch=100)
+                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs) 
         
         def act(self, seqs):
             choices = []
@@ -44,8 +43,7 @@ def SparseGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k=1., 
 
         def observe(self, data):
             super().observe(data)
-            self.model.fit(*zip(*self.seen.items()), epochs=epochs, 
-                                minibatch=min(len(self.seen), 100))
+            self.model.fit(*zip(*self.seen.items()), epochs=epochs) 
         
     return Agent
 
