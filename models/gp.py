@@ -67,6 +67,7 @@ class GaussianProcess:
         '''
         super().__init__()
         self.X, self.Y = (), ()
+        self.minibatch = minibatch
         self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, 
                                     lam=lam, beta=beta, minibatch=minibatch)
         self.mu = mu
@@ -78,8 +79,8 @@ class FeautureGaussianProcess(GaussianProcess):
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4,
                     lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=1e-4, minibatch=100):
-        super().__init__()
         self.X, self.Y = (), ()
+        self.minibatch = minibatch
         self.embed = DeepFeatureEmbedding(encoder, dim=dim, alpha=alpha, 
                         shape=shape, lam=lam, minibatch=minibatch)
         self.mu = mu

@@ -85,6 +85,7 @@ class SparseGaussianProcess:
         '''
         super().__init__()
         self.X, self.Y = (), ()
+        self.minibatch = minibatch
         self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, 
                                     lam=lam, beta=beta, minibatch=minibatch)
         self.mu = mu
