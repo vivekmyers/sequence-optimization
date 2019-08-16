@@ -53,7 +53,7 @@ class GaussianProcess:
         return np.diagonal(sigma.cpu().numpy())
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    lam=1e-5, mu=0.5, sigma=0.5, tau=1, eps=0.01, minibatch=100):
+                    lam=1e-5, mu=0.5, sigma=0.5, tau=1, eps=0.01, minibatch=100, gpbatch=5000):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
@@ -67,7 +67,7 @@ class GaussianProcess:
         '''
         super().__init__()
         self.X, self.Y = (), ()
-        self.minibatch = minibatch
+        self.minibatch = gpbatch
         self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, 
                                     lam=lam, beta=beta, minibatch=minibatch)
         self.mu = mu
@@ -78,9 +78,9 @@ class GaussianProcess:
 class FeautureGaussianProcess(GaussianProcess):
 
     def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4,
-                    lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=1e-4, minibatch=100):
+                    lam=1e-3, mu=0.5, sigma=0.5, tau=1, eps=1e-4, minibatch=100, gpbatch=5000):
         self.X, self.Y = (), ()
-        self.minibatch = minibatch
+        self.minibatch = gpbatch
         self.embed = DeepFeatureEmbedding(encoder, dim=dim, alpha=alpha, 
                         shape=shape, lam=lam, minibatch=minibatch)
         self.mu = mu

@@ -29,19 +29,23 @@ class Bucketer:
         sigmas = np.array([np.array(x).std() if x else 1 for x in vals])
         dist = [Normal(mu, 1 / (len(val) / sigma ** 2 + 1 / self.sigma ** 2)) for mu, sigma, val in zip(mus, sigmas, vals)]
         ret = []
+        pred = model.predict(pts_em)
+        scores = self.embed.predict(pts)
         for i in range(n):
-            pred = model.predict(pts_em)
             sampled = np.argmax(np.array([d.sample().item()
-                        if i in pred else 0.
+                        if i in pred else min(scores)
                         for i, d in enumerate(dist)]))
-            clust = np.array(pts)[model.predict(pts_em) == sampled]
-            ret.append(clust[np.argmax(self.embed.predict(clust))])
+            clust = np.array(pts)[pred == sampled]
+            clust_scores = np.array(scores)[pred == sampled]
+            ret.append(clust[np.argmax(clust_scores)])
             del pts_em[pts.index(ret[-1])]
+            pred = pred[np.arange(pred.shape[0]) != pts.index(ret[-1])]
+            scores = scores[np.arange(scores.shape[0]) != pts.index(ret[-1])]
             del pts[pts.index(ret[-1])]
         return ret
 
 
-    def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
+    def __init__(self, encoder, dim, shape, beta=0.5, alpha=5e-4, 
                     sigma=0.5, mu=0.5, k=100, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
