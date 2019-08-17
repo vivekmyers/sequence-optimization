@@ -5,6 +5,7 @@ from models.gp import GaussianProcess
 from models.cnn import CNN
 import utils.mcmc
 
+
 def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.01, beta=0.02, k=1., explore=1.):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a deep kernel gaussian process regression.
@@ -22,6 +23,7 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.01, beta=0.02, k=
 
         def __init__(self, *args):
             super().__init__(*args)
+            self.k = k
             self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, 
                                             tau=tau, beta=beta)
             if len(self.prior):
@@ -50,12 +52,35 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.01, beta=0.02, k=
         
     return Agent
 
-def FeatureGaussianAgent(*args):
+def FixedGaussianAgent(*args, **kwargs):
 
-    class Agent(GaussianAgent(*args)):
+    class Agent(GaussianAgent(*args, **kwargs)):
 
-        def __init__(self, *args):
-            super().__init__(*args)
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def act(self, seqs):
+            choices = []
+            mu = self.model.interpolate(seqs)
+            sigma = self.model.uncertainty(seqs)
+            seqs = np.array(seqs)
+            ucb = mu + sigma
+            selected = np.argsort(ucb)[-int(self.k * self.batch):]
+            if self.k != 1.:
+                idx = utils.mcmc.mcmc(self.batch, 
+                            self.model.embed(seqs[selected]),
+                            iters=1000)
+                selected = selected[idx]
+            return seqs[selected]
+
+    return Agent
+
+def FeatureGaussianAgent(*args, **kwargs):
+
+    class Agent(GaussianAgent(*args, **kwargs)):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             self.model = FeautureGaussianProcess(encoder=self.encode, dim=dim, shape=self.shape,
                                             tau=tau, beta=beta, eps=0.01)
             if len(self.prior):
