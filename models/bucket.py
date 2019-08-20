@@ -27,7 +27,8 @@ class Bucketer:
            vals[idx].append(val)
         mus = np.array([np.array(x).mean() if x else 0 for x in vals])
         sigmas = np.array([np.array(x).std() if x else 1 for x in vals])
-        dist = [Normal(mu, 1 / (len(val) / sigma ** 2 + 1 / self.sigma ** 2)) for mu, sigma, val in zip(mus, sigmas, vals)]
+        dist = [Normal(mu, np.sqrt(1 / (len(val) / sigma ** 2 + 1 / self.sigma ** 2))) 
+                    for mu, sigma, val in zip(mus, sigmas, vals)]
         ret = []
         pred = model.predict(pts_em)
         scores = self.embed.predict(pts)

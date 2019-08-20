@@ -37,9 +37,9 @@ def run_agent(arg):
     name = agent + ' ' * (max(map(len, args.agents)) - len(agent))
     if torch.cuda.is_available():
         with torch.cuda.device(pos % torch.cuda.device_count()):
-            corrs, top10, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
+            corrs, reward, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
     else:
-        corrs, top10, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
+        corrs, reward, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
     data = dict(
         env=args.env,
         agent=agent,
@@ -47,9 +47,9 @@ def run_agent(arg):
         pretrain=args.pretrain,
         validation=args.validation,
         correlations=corrs,
-        top10=top10,
+        reward=reward,
         regret=regret)
-    return dict(agent=agent, corrs=corrs, top10=top10, regret=regret, data=data)
+    return dict(agent=agent, corrs=corrs, reward=reward, regret=regret, data=data)
 
 
 if __name__ == '__main__':
@@ -104,12 +104,12 @@ if __name__ == '__main__':
         make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Correlation', 
                     [(datum, agent) for agent, datum in corrs.items()],
                     f'{loc}/corr')
-    top10s = {}
+    rewards = {}
     for agent in [x['agent'] for x in collected]:
-        top10s[agent] = np.array([x['top10'] for x in collected if x['agent'] == agent]).mean(axis=0)
-    make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Top 10 Average', 
-                [(datum, agent) for agent, datum in top10s.items()],
-                f'{loc}/top10')
+        rewards[agent] = np.array([x['reward'] for x in collected if x['agent'] == agent]).mean(axis=0)
+    make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Reward', 
+                [(datum, agent) for agent, datum in rewards.items()],
+                f'{loc}/reward')
     regrets = {}
     for agent in [x['agent'] for x in collected]:
         regrets[agent] = np.array([x['regret'] for x in collected if x['agent'] == agent]).mean(axis=0)

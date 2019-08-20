@@ -48,9 +48,10 @@ class GuideEnv:
         have been tried (or the batch number specified by the cutoff parameter
         has been reached). Returns the validation performance after each batch
         (measured using Pearson correlation with the agent's predict method 
-        on validation data), as well as the average performance of the best 
-        10 guides the agent has seen after each batch. The name and pos
-        parameters are used for a progress bar.
+        on validation data), as well as the total performance of the best 
+        20% of guides the agent has seen after each batch, and the regret after
+        each batch (difference between best possible selection and
+        actual top 20% of selection). The name and pos parameters are used for a progress bar.
         '''
         data = self.env.copy()
         if cutoff is None:
@@ -60,9 +61,9 @@ class GuideEnv:
         agent = Agent(self.prior.copy(), self.len, self.batch)
         seen = []
         corrs = []
-        top10 = []
+        reward = []
         regret = []
-        while len(data) >= self.batch and (cutoff is None or len(top10) < cutoff):
+        while len(data) >= self.batch and (cutoff is None or len(reward) < cutoff):
             sampled = agent.act(list(data.keys()))
             assert len(set(sampled)) == self.batch, "bad action"
             agent.observe({seq: data[seq] for seq in sampled})
@@ -75,10 +76,10 @@ class GuideEnv:
             if not self.nocorr:
                 predicted = np.array(agent.predict(self.val[0].copy()))
                 corrs.append(np.nan_to_num(np.corrcoef(predicted, self.val[1])[0, 1]))
-            top10.append(np.array(sorted(seen))[-10:].mean())
+            reward.append(np.array(sorted(seen))[-len(seen) // 5:].sum())
             pbar.update(self.batch)
         pbar.close()
-        return np.array(corrs), np.array(top10), np.array(regret)
+        return np.array(corrs), np.array(reward), np.array(regret)
 
 
 class FlankEnv(GuideEnv):
@@ -124,7 +125,7 @@ def GenericEnv(data, prior=None):
 class _MotifEnv(GuideEnv):
 
     def __init__(self, N, lam, comp, var, batch, validation, pretrain=False, nocorr=False):
-        dlen = 30000
+        dlen = 50000
         data = motif.make_data(dlen, N=N, lam=lam, comp=comp, var=var)
         self.prior = {}
         r = int(len(data) * validation)
