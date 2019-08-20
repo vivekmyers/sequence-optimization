@@ -1,7 +1,7 @@
 import numpy as np
 from random import *
 from models.fixed_bayesian import BayesianCNN
-from models.cnn import CNN
+from models.auto_cnn import CNN
 import agents.random
 
 def ThompsonAgent(epochs=30, initial_epochs=None):

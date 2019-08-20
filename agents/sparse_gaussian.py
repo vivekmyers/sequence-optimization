@@ -2,7 +2,7 @@ import numpy as np
 from random import *
 import agents.random
 from models.spgp import SparseGaussianProcess
-from models.cnn import CNN
+from models.auto_cnn import CNN
 import utils.mcmc
 
 def SparseGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k=1., M=1000):

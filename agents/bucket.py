@@ -2,7 +2,7 @@ import numpy as np
 from random import *
 import agents.random
 from models.bucket import Bucketer
-from models.cnn import CNN
+from models.auto_cnn import CNN
 import utils.mcmc
 
 def BucketAgent(epochs=30, initial_epochs=None, dim=4, beta=0.5, k=1.):

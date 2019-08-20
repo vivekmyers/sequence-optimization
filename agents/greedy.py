@@ -1,7 +1,7 @@
 import numpy as np
 from random import *
 import agents.random
-from models.cnn import CNN
+from models.auto_cnn import CNN
 
 def GreedyAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with CNN to predict sequence values that trains with each observation.

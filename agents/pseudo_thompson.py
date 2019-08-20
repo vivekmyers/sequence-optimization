@@ -1,7 +1,7 @@
 import numpy as np
 from random import *
 from models.uncertain import UncertainCNN
-from models.cnn import CNN
+from models.auto_cnn import CNN
 import agents.random
 from torch.distributions import Normal
 from torch import tensor

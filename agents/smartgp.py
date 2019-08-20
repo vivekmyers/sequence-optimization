@@ -2,7 +2,7 @@ import numpy as np
 from random import *
 import agents.base
 from models.gp import GaussianProcess
-from models.cnn import CNN
+from models.auto_cnn import CNN
 from agents.gaussian import GaussianAgent
 
 def SmartGaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.01, beta=0.02):
