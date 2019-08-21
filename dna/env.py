@@ -125,7 +125,7 @@ def GenericEnv(data, prior=None):
 class _MotifEnv(GuideEnv):
 
     def __init__(self, N, lam, comp, var, batch, validation, pretrain=False, nocorr=False):
-        dlen = 50000
+        dlen = 30000
         data = motif.make_data(dlen, N=N, lam=lam, comp=comp, var=var)
         self.prior = {}
         r = int(len(data) * validation)
