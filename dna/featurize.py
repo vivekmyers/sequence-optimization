@@ -14,7 +14,8 @@ aa = ['Aba', 'Ace', 'Acr', 'Ala', 'Aly', 'Arg', 'Asn', 'Asp', 'Cas',
         'Dha', 'Gln', 'Glu', 'Gly', 'Glz', 'His', 'Hse', 'Ile', 'Leu', 
         'Llp', 'Lys', 'Men', 'Met', 'Mly', 'Mse', 'Nh2', 'Nle', 'Ocs', 
         'Pca', 'Phe', 'Pro', 'Ptr', 'Sep', 'Ser', 'Thr', 'Tih', 'Tpo', 
-        'Trp', 'Tyr', 'Unk', 'Val', 'Ycm', 'Sec', 'Pyl']
+        'Trp', 'Tyr', 'Unk', 'Val', 'Ycm', 'Sec', 'Pyl', 'Ter']
+aa_dict = {x: aa.index(x) for x in aa}
 num_aa = len(aa)
 
 
@@ -71,23 +72,24 @@ class ProteinEncoder:
             base_seq = base_seq[3:]
         self.base_seq = np.array(self.base_seq)
 
-    def __call__(delta):
+    def __call__(self, delta):
         '''Return one-hot encoding of base_seq, with the modifications
         in the hgvs_pro delta.
         '''
-        assert delta[:2] == 'p.'
-        delta = delta[2:]
-        delta = delta.replace('[', '').replace(']', '')
-        subs = delta.split(';')
         result = self.base_seq.copy()
-        for s in subs:
-            old = s[:3]
-            new = s[-3:]
-            idx = s[3:-3]
-            assert result[int(idx) - 1] == old
-            result[int(idx) - 1] = new
+        if delta[:2] == 'p.':
+            delta = delta[2:]
+            delta = delta.replace('[', '').replace(']', '')
+            subs = delta.split(';')
+            for s in subs:
+                if len(s) > 6:
+                    old = s[:3]
+                    new = s[-3:]
+                    idx = s[3:-3]
+                    assert result[int(idx) - 1] == old
+                    result[int(idx) - 1] = new
         arr = np.zeros([*self.base_seq.shape, num_aa])
-        arr[[aa.index(i) for i in result]] = 1.
+        arr[np.arange(*self.base_seq.shape), [aa_dict[i] for i in result]] = 1.
         return arr
         
 

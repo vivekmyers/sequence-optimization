@@ -181,11 +181,11 @@ def ClusterEnv(N=100, comp=0.5, var=0.5):
     return partial(_ClusterEnv, N, comp, var)
 
 
-class _ProteinEnv:
+class _ProteinEnv(_Env):
     
     def __init__(self, source, batch, validation, pretrain=False, nocorr=False):
         base_seq = open(f'data/MaveDB/seqs/{source}.txt').read().strip()
-        df = pd.read_csv('data/MaveDB/scores/{source}.csv.gz', delimiter=r',', engine='python', compression='gzip')
+        df = pd.read_csv(f'data/MaveDB/scores/{source}.csv.gz', delimiter=r',', engine='python', compression='gzip')
         data = [*zip(df.hgvs_pro.values, df.score.values)]
         shuffle(data)
         self.prior = {}
@@ -194,7 +194,7 @@ class _ProteinEnv:
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
         self.batch = batch
         self.nocorr = nocorr
-        self.shape = (len(base_seq), dna.featurize.num_aa)
+        self.shape = (len(base_seq) // 3, dna.featurize.num_aa)
         self.encode = dna.featurize.ProteinEncoder(base_seq)
 
 
