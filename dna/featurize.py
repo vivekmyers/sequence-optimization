@@ -82,7 +82,7 @@ class ProteinEncoder:
             delta = delta.replace('[', '').replace(']', '')
             subs = delta.split(';')
             for s in subs:
-                if len(s) > 6:
+                if len(s) > 6 and s[-1] != '=':
                     old = s[:3]
                     new = s[-3:]
                     idx = s[3:-3]
