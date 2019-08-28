@@ -186,7 +186,7 @@ class _ProteinEnv(_Env):
     def __init__(self, source, batch, validation, pretrain=False, nocorr=False):
         base_seq = open(f'data/MaveDB/seqs/{source}.txt').read().strip()
         df = pd.read_csv(f'data/MaveDB/scores/{source}.csv.gz', delimiter=r',', engine='python', compression='gzip')
-        data = [*zip(df.hgvs_pro.values, df.score.values)]
+        data = [*zip(df.hgvs_pro.values, 1 / (1 + np.exp(-df.score.values)))]
         shuffle(data)
         self.prior = {}
         r = int(len(data) * validation)

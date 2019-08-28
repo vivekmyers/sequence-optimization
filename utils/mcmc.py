@@ -25,10 +25,13 @@ def mcmc(k, em, iters, T=0, lam=1.):
         idx = sample(range(curr.shape[0]),
                          min(np.random.poisson(lam) + 1, k))
         test = np.array(curr)
-        probs = cdist(em[test[idx]], em[rest]) ** (-2)
+        probs = np.nan_to_num((cdist(em[test[idx]], em[rest]) + 1e-6) ** (-2))
         probs /= probs.sum(axis=1)[:, None]
         for i, _ in enumerate(idx):
-            j = np.random.choice(len(rest), p=probs[i])
+            try:
+                j = np.random.choice(len(rest), p=np.nan_to_num(probs[i]))
+            except:
+                j = np.random.choice(len(rest))
             probs[:, j] = 0
             probs /= probs.sum(axis=1)[:, None]
             test[idx[i]] = rest[j]

@@ -34,7 +34,7 @@ class Bucketer:
         scores = self.embed.predict(pts)
         for i in range(n):
             sampled = np.argmax(np.array([d.sample().item()
-                        if i in pred else min(scores)
+                        if i in pred else -np.inf
                         for i, d in enumerate(dist)]))
             clust = np.array(pts)[pred == sampled]
             clust_scores = np.array(scores)[pred == sampled]
