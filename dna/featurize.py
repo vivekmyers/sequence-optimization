@@ -81,13 +81,13 @@ class ProteinEncoder:
             delta = delta[2:]
             delta = delta.replace('[', '').replace(']', '')
             subs = delta.split(';')
-            for s in subs:
+            for s in set(subs):
                 if len(s) > 6 and s[-1] != '=':
                     old = s[:3]
                     new = s[-3:]
-                    idx = s[3:-3]
-                    assert result[int(idx) - 1] == old
-                    result[int(idx) - 1] = new
+                    idx = int(s[3:-3])
+                    assert result[idx - 1] == old, idx
+                    result[idx - 1] = new
         arr = np.zeros([*self.base_seq.shape, num_aa])
         arr[np.arange(*self.base_seq.shape), [aa_dict[i] for i in result]] = 1.
         return arr

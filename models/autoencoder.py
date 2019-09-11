@@ -9,7 +9,7 @@ import utils.model
 class Autoencoder:
     '''Learns encoder and decoder for unsupervised sequence embedding.'''
 
-    def _make_net(self, alpha, shape, dim):
+    def _make_net(self, alpha, shape, dim, hidden=100):
 
         class Encoder(nn.Module):
 
@@ -21,7 +21,7 @@ class Autoencoder:
                 self.conv_layers = nn.Sequential(
                     conv[0], nn.ReLU(), conv[1], nn.ReLU(),
                     conv[2], nn.ReLU()) 
-                fc = self.fc = [nn.Linear(32 * shape[0], 100), nn.Linear(100, dim)]
+                fc = self.fc = [nn.Linear(32 * shape[0], hidden), nn.Linear(hidden, dim)]
                 self.fc_layers = nn.Sequential(
                     fc[0], nn.Dropout(0.5), nn.ReLU(), fc[1], nn.Sigmoid())
             
@@ -36,7 +36,8 @@ class Autoencoder:
 
             def __init__(self):
                 super().__init__()
-                fc = self.fc = [nn.Linear(dim, 50), nn.Linear(50, 100), nn.Linear(100, shape[0] * shape[1] + 1)] 
+                fc = self.fc = [nn.Linear(dim, hidden // 2), nn.Linear(hidden // 2, hidden), 
+                                    nn.Linear(hidden, shape[0] * shape[1] + 1)] 
                 self.fc_layers = nn.Sequential(fc[0], nn.ReLU(), fc[1], nn.ReLU(), fc[2]) 
             
             def forward(self, x):
