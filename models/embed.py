@@ -17,7 +17,7 @@ class Embedding(ABC):
     def _make_net(self, alpha, opt, shape, dim):
         self.model = self.make_model(shape, dim).to(self.device)
 
-    def refit(self, seqs, scores, epochs, minibatch):
+    def fit(self, seqs, scores, epochs, minibatch):
         '''Refit embedding with labeled sequences.'''
         self.model.train()
         D = list(zip([self.encode(x) for x in seqs], scores))

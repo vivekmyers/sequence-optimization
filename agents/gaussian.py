@@ -27,7 +27,7 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.01, beta=0.02, k=
             self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, 
                                             tau=tau, beta=beta)
             if len(self.prior):
-                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs)
+                self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             choices = []
@@ -84,6 +84,6 @@ def FeatureGaussianAgent(*args, **kwargs):
             self.model = FeautureGaussianProcess(encoder=self.encode, dim=dim, shape=self.shape,
                                             tau=tau, beta=beta, eps=0.01)
             if len(self.prior):
-                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs)
+                self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
 
     return Agent

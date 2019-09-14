@@ -24,7 +24,7 @@ def SmartSparseGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k
             self.model = SparseGaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, 
                                                 beta=beta, M=M)
             if len(self.prior):
-                self.model.embed.refit(*zip(*self.prior.items()), epochs=initial_epochs) 
+                self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs) 
         
         def act(self, seqs):
             choices = []

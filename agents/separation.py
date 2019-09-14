@@ -31,7 +31,7 @@ def SeparationAgent(epochs=30, initial_epochs=None, k=1., dim=5):
         def observe(self, data):
             super().observe(data)
             self.model.fit(*zip(*self.seen.items()), epochs=epochs) 
-            self.embed.refit(*zip(*self.seen.items()), epochs=epochs) 
+            self.embed.fit(*zip(*self.seen.items()), epochs=epochs) 
         
     return Agent
 

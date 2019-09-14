@@ -5,63 +5,107 @@ import torch
 from torch import nn
 import torch.functional as F
 from models.autoencoder import Autoencoder
-from torch.distributions import Normal
-from scipy.spatial.distance import pdist, cdist, squareform
 from sklearn.cluster import KMeans
 
 class Bucketer:
-    '''Buckets and samples from embedded sequences with TS.'''
+    '''Buckets and samples from embedded sequences with Thompson sampling.'''
 
     def fit(self, seqs, scores, epochs):
+        '''Fits model to observed labeled sequences. Should be
+        called with all labeled sequences seen so far at each
+        time step.
+        '''
         self.X = seqs[:]
         self.Y = scores[:]
-        self.embed.refit(self.X, self.Y, epochs)
+        self.embed.fit(self.X, self.Y, epochs)
 
     def sample(self, pts, n):
+        '''Thompson sample sequences.
+        pts: sequences to sample from
+        n: number of sequences to sample
+        '''
         pts = pts[:]
-        em = list(self.embed(self.X)) if len(self.X) else []
-        pts_em = list(self.embed(pts))
-        model = KMeans(self.k).fit(em + pts_em)
-        vals = [[] for i in range(self.k)]
-        for idx, val in zip(model.predict(em) if len(em) else [], self.Y):
-           vals[idx].append(val)
-        mus = np.array([np.array(x).mean() if x else 0 for x in vals])
-        sigmas = np.array([np.array(x).std() if x else 1 for x in vals])
-        dist = [Normal(mu, np.sqrt(1 / (len(val) / sigma ** 2 + 1 / self.sigma ** 2))) 
-                    for mu, sigma, val in zip(mus, sigmas, vals)]
-        ret = []
-        pred = model.predict(pts_em)
-        scores = self.embed.predict(pts)
+        seen_em = list(self.embed(self.X)) if len(self.X) else [] # embedding of seen sequences
+        pts_em = list(self.embed(pts)) # embedding of unlabeled sequences
+
+        # create buckets containing labels of seen sequences using k-means
+        # of embeddings of both seen and unseen sequences
+        clustering = KMeans(self.k).fit(seen_em + pts_em)
+        buckets = [[] for i in range(self.k)]
+        for idx, val in zip(clustering.predict(seen_em) if len(seen_em) else [], self.Y):
+           buckets[idx].append(val)
+        buckets = list(map(np.array, buckets))
+
+        mu0, n0, alpha, beta = self.prior # unpack prior parameters
+
+        def conj_tau(x): 
+            '''Returns a, b where the conjugate distribution of tau
+            given x is Ga(a, b).
+            '''
+            if len(x) == 0: return alpha, 1 / beta
+            a = alpha + len(x) / 2
+            b0 = beta + 1 / 2 * ((x - x.mean()) ** 2).sum()
+            b1 = len(x) * n0 * (x.mean() - mu0) ** 2 / (2 * (len(x) + n0))
+            return a, 1 / (b0 + b1)
+
+        def conj_mu(x, tau):
+            '''Returns mu', sigma' where the conjugate distribution of
+            mu given x, tau is N(mu', sigma').
+            '''
+            n = len(x)
+            if n == 0: return mu0, np.sqrt(1 / (n0 * tau))
+            mu = (n * tau * x.mean() + n0 * tau * mu0) / (n * tau + n0 * tau)
+            prec = n * tau + n0 * tau
+            return mu, np.sqrt(1 / prec)
+
+
+        # construct conjugate distributions for each bucket
+        taus = [lambda x=x: np.random.gamma(*conj_tau(x)) for x in buckets]
+        distributions = [lambda x=x, tau=tau: np.random.normal(*conj_mu(x, tau()))
+                            for x, tau in zip(buckets, taus)]
+
+        
+        # select n sequences to return
+        selections = []
+        pts_buckets = clustering.predict(pts_em) # buckets of all unlabeled sequences
+        scores = self.embed.predict(pts) # predicted labels for greedy step
+
         for i in range(n):
-            sampled = np.argmax(np.array([d.sample().item()
-                        if i in pred else -np.inf
-                        for i, d in enumerate(dist)]))
-            clust = np.array(pts)[pred == sampled]
-            clust_scores = np.array(scores)[pred == sampled]
-            ret.append(clust[np.argmax(clust_scores)])
-            del pts_em[pts.index(ret[-1])]
-            pred = pred[np.arange(pred.shape[0]) != pts.index(ret[-1])]
-            scores = scores[np.arange(scores.shape[0]) != pts.index(ret[-1])]
-            del pts[pts.index(ret[-1])]
-        return ret
+
+            # 1. Thompson sample a bucket by sampling from each conjugate dist and taking max
+            # 2. get the unlabeled sequences in it and their predictions
+            sampled_idx = np.argmax(np.array([dist() if bucket_idx in pts_buckets else -np.inf
+                        for bucket_idx, dist in enumerate(distributions)])) == pts_buckets
+            sampled_pts = np.array(pts)[sampled_idx]
+            sampled_preds = np.array(scores)[sampled_idx]
+
+            # greedily take best predicted sequence in bucket
+            selections.append(sampled_pts[np.argmax(sampled_preds)])
+
+            # remove sequence
+            del pts_em[pts.index(selections[-1])]
+            removal = np.arange(scores.shape[0]) != pts.index(selections[-1])
+            pts_buckets = pts_buckets[removal]
+            scores = scores[removal]
+            del pts[pts.index(selections[-1])]
+
+        return selections
 
 
     def __init__(self, encoder, dim, shape, beta=0.5, alpha=5e-4, 
-                    sigma=0.5, mu=0.5, k=100, minibatch=100):
+                    prior=(0.5, 10, 1, 1), k=100, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
         beta: embedding score weighting
         dim: embedding dimensionality
-        mu: prior mean
-        sigma: prior standard deviation
+        prior: (mu0, n0, alpha, beta) prior over gamma and gaussian bucket score distributions.
         k: cluster count
         '''
         super().__init__()
         self.X, self.Y = (), ()
         self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, 
                         shape=shape, beta=beta, minibatch=minibatch)
-        self.mu = mu
-        self.sigma = sigma
+        self.prior = prior
         self.k = k
 

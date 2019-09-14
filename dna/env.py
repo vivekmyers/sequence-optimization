@@ -45,7 +45,7 @@ class _Env:
             if not self.nocorr:
                 predicted = np.array(agent.predict(self.val[0].copy()))
                 corrs.append(np.nan_to_num(np.corrcoef(predicted, self.val[1])[0, 1]))
-            reward.append(np.array(sorted(seen))[-len(seen) // 5:].sum())
+            reward.append(np.array(sorted(seen))[-len(seen) // 5:].mean())
             pbar.update(self.batch)
         pbar.close()
         return np.array(corrs), np.array(reward), np.array(regret)
@@ -157,19 +157,31 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
 class _ClusterEnv(GuideEnv):
 
     def __init__(self, N, comp, var, batch, validation, pretrain=False, nocorr=False):
-        dlen = 30000
         self.encode = dna.featurize.encode_dna
         self.shape = (20, dna.featurize.num_dna_features)
-        motifs = [(motif.make_motif(self.shape[0], comp), random() - 1 / 2, random() * var) for _ in range(N)]
-        data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
-                    for m, mu, sigma in motifs for _ in range(dlen // N)]
-        shuffle(data)
-        self.prior = {}
-        r = int(len(data) * validation)
-        self.env = dict(data[r:])
-        self.val = tuple(np.array(x) for x in zip(*data[:r]))
         self.batch = batch
         self.nocorr = nocorr
+        self.N = N
+        self.comp = comp
+        self.var = var
+        self.validation = validation
+
+    def _make_data(self):
+        dlen = 30000
+        motifs = [(motif.make_motif(self.shape[0], self.comp), 
+            random() - 1 / 2, random() * self.var) for _ in range(self.N)]
+        data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
+                    for m, mu, sigma in motifs for _ in range(dlen // self.N)]
+        shuffle(data)
+        self.prior = {}
+        r = int(len(data) * self.validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
+
+    def run(self, *args, **kwargs):
+        self._make_data()
+        return super().run(*args, **kwargs)
+
 
 
 def ClusterEnv(N=100, comp=0.5, var=0.5):

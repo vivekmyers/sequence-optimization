@@ -15,7 +15,7 @@ class GaussianProcess:
     def fit(self, seqs, scores, epochs):
         self.X = seqs[:]
         self.Y = scores[:]
-        self.embed.refit(self.X, self.Y, epochs)
+        self.embed.fit(self.X, self.Y, epochs)
 
     @utils.model.batch
     def interpolate(self, x):

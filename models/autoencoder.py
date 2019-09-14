@@ -23,7 +23,7 @@ class Autoencoder:
                     conv[2], nn.ReLU()) 
                 fc = self.fc = [nn.Linear(32 * shape[0], hidden), nn.Linear(hidden, dim)]
                 self.fc_layers = nn.Sequential(
-                    fc[0], nn.Dropout(0.5), nn.ReLU(), fc[1], nn.Sigmoid())
+                    fc[0], nn.ReLU(), fc[1], nn.Sigmoid())
             
             def forward(self, x):
                 filtered = self.conv_layers(x.permute(0, 2, 1))
@@ -50,7 +50,7 @@ class Autoencoder:
         self.encoder = Encoder().to(self.device)
         self.decoder = Decoder().to(self.device)
 
-    def refit(self, seqs, scores, epochs):
+    def fit(self, seqs, scores, epochs):
         self.encoder.train()
         D = [(self.encode(x), y) for x, y in zip(seqs, scores)]
         M = len(D) // self.minibatch + bool(len(D) % self.minibatch)
@@ -86,7 +86,7 @@ class Autoencoder:
         D = torch.tensor([self.encode(x) for x in seqs]).to(self.device).float()
         return self.encoder(D).cpu().detach().numpy()
 
-    def __init__(self, encoder, shape, dim=5, beta=0., alpha=5e-4, lam=5e-5, minibatch=100):
+    def __init__(self, encoder, shape, dim=5, beta=0., alpha=5e-4, lam=0., minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         dim: dimensionality of embedding.
         alpha: learning rate.

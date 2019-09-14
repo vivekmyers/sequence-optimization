@@ -9,7 +9,7 @@ from torch import tensor
 def PseudoThompsonAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with a CNN trained to predict gaussians with uncertainty, 
     using Thompson sampling with the network's uncertainty to select batches, and 
-    refitting the model to update the predicted distributions between batches.
+    fitting the model to update the predicted distributions between batches.
     '''
     if initial_epochs is None:
         initial_epochs = epochs // 4

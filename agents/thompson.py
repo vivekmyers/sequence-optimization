@@ -7,7 +7,7 @@ import agents.random
 def ThompsonAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with a Bayesian CNN, using Thompson sampling with the
     network's uncertainty (over its parameters) to select batches, and 
-    refitting the model to update the predicted distributions between batches.
+    fitting the model to update the predicted distributions between batches.
     '''
     if initial_epochs is None:
         initial_epochs = epochs // 4
