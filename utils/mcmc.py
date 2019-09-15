@@ -16,6 +16,8 @@ def mcmc(k, em, iters, T=0, lam=1.):
     T: temperature parameter
     lam: lambda of poisson distribution used for perturbations
     '''
+    if k <= 1:
+        return np.arange(len(em))
     pts = range(len(em))
     curr = np.array([*sample(pts, k)])
     best = curr

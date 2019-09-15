@@ -4,7 +4,7 @@ import os, sys
 import torch
 from torch import nn
 import torch.functional as F
-from models.autoencoder import Autoencoder
+from models.featurizer import Featurizer
 from scipy.spatial.distance import pdist, cdist, squareform
 from models.embed import *
 import utils.model
@@ -52,12 +52,11 @@ class GaussianProcess:
                 torch.eye(len(X)).to(self.embed.device).double() * self.eps) @ K_star.permute(1, 0))
         return np.diagonal(sigma.cpu().numpy())
 
-    def __init__(self, encoder, dim, shape, beta=0., alpha=5e-4, 
-                    lam=1e-5, mu=0.5, sigma=0.5, tau=1, eps=0.01, minibatch=100, gpbatch=5000):
+    def __init__(self, encoder, dim, shape, alpha=5e-4, 
+                    lam=0, mu=0.5, sigma=0.5, tau=1, eps=1e-4, minibatch=100, gpbatch=5000):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
-        beta:embedding score weighting
         dim: embedding dimensionality
         lam: l2 regularization constant
         mu: GP prior mean
@@ -68,8 +67,8 @@ class GaussianProcess:
         super().__init__()
         self.X, self.Y = (), ()
         self.minibatch = gpbatch
-        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, shape=shape, 
-                                    lam=lam, beta=beta, minibatch=minibatch)
+        self.embed = Featurizer(encoder, dim=dim, alpha=alpha, shape=shape, 
+                                    lam=lam, minibatch=minibatch)
         self.mu = mu
         self.sigma = sigma
         self.tau = tau

@@ -4,7 +4,7 @@ import os, sys
 import torch
 from torch import nn
 import torch.functional as F
-from models.autoencoder import Autoencoder
+from models.featurizer import Featurizer
 from sklearn.cluster import KMeans
 
 class Bucketer:
@@ -92,20 +92,18 @@ class Bucketer:
         return selections
 
 
-    def __init__(self, encoder, dim, shape, beta=0.5, alpha=5e-4, 
+    def __init__(self, encoder, dim, shape, alpha=5e-4, 
                     prior=(0.5, 10, 1, 1), k=100, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
-        beta: embedding score weighting
         dim: embedding dimensionality
         prior: (mu0, n0, alpha, beta) prior over gamma and gaussian bucket score distributions.
         k: cluster count
         '''
         super().__init__()
         self.X, self.Y = (), ()
-        self.embed = Autoencoder(encoder, dim=dim, alpha=alpha, 
-                        shape=shape, beta=beta, minibatch=minibatch)
+        self.embed = Featurizer(encoder, shape, dim=dim, alpha=alpha, minibatch=minibatch)
         self.prior = prior
         self.k = k
 

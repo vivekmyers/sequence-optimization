@@ -5,7 +5,7 @@ from models.bucket import Bucketer
 from models.auto_cnn import CNN
 import utils.mcmc
 
-def BucketAgent(epochs=30, initial_epochs=None, dim=4, beta=0.5, k=1., prior=(0.5, 10, 1, 1)):
+def BucketAgent(epochs=30, initial_epochs=None, dim=4, k=1., prior=(0.5, 10, 1, 1)):
     '''Constructs agent that buckets sequences with autoencoder embedding, then
     uses Thompson sampling to select between buckets in batches.
     dim: embedding shape
@@ -20,8 +20,7 @@ def BucketAgent(epochs=30, initial_epochs=None, dim=4, beta=0.5, k=1., prior=(0.
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.model = Bucketer(encoder=self.encode, dim=dim, shape=self.shape, 
-                                            beta=beta, k=k, prior=prior)
+            self.model = Bucketer(encoder=self.encode, dim=dim, shape=self.shape, k=k, prior=prior)
             if len(self.prior):
                 self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
