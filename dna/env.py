@@ -50,11 +50,21 @@ class _Env:
         pbar.close()
         return np.array(corrs), np.array(reward), np.array(regret)
 
+    def __init__(self, batch, validation, pretrain=False, nocorr=False):
+        '''Subclasses must override and set self.env, self.val, self.prior, self.shape, and self.encode.'''
+        assert 0 <= validation < 1
+        self.batch = batch
+        self.pretrain = pretrain
+        self.validation = validation
+        self.nocorr = nocorr
+        self.cache = {}
+        self.prior = {}
+
 
 class GuideEnv(_Env):
     '''Stores labeled sequences, reserving some for validation, and runs agents on them.'''
 
-    def __init__(self, batch=1000, validation=0.2, pretrain=False, nocorr=False):
+    def __init__(self, batch, validation, pretrain=False, nocorr=False):
         '''Initialize environment.
         files: csv files to read data from
         batch: number of sequences selected per action
@@ -62,7 +72,7 @@ class GuideEnv(_Env):
         initial: pretrain on given datafile
         nocorr: do not compute correlations when running
         '''
-        assert 0 <= validation < 1
+        super().__init__(batch, validation, pretrain, nocorr)
         self.encode = dna.featurize.encode_dna
         files=[f'data/DeepCRISPR/{f}' for f in os.listdir('data/DeepCRISPR') if f.endswith('.csv')]
         initial = 'data/Azimuth/azimuth_preds.csv.gz' if pretrain else None
@@ -75,15 +85,11 @@ class GuideEnv(_Env):
         r = int(validation * len(data))
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.nocorr = nocorr
         # start agent with some portion of initial sequences
         if initial:
             df = pd.read_csv(initial, delimiter=r'\t', engine='python', compression='gzip')
             azimuth_guides = ['+' + s[6:-3].upper() for s, pam in zip(df.guide_seq, df.pam_seq) if pam == 'GG']
             self.prior = dict([*zip(azimuth_guides, df.azimuth_pred)])
-        else:
-            self.prior = {}
-        self.batch = batch
         assert batch < len(self.env)
 
 
@@ -91,6 +97,7 @@ class FlankEnv(_Env):
     '''Simpler environment using flanking sequences.'''
 
     def __init__(self, batch, validation, pretrain=False, nocorr=False):
+        super().__init__(batch, validation, pretrain, nocorr)
         self.encode = dna.featurize.encode_dna
         df = pickle.load(open('data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
         data = [*zip([f'+{x}' for x in df.index], df.values)]
@@ -101,14 +108,13 @@ class FlankEnv(_Env):
         r = int(dlen * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.batch = batch
-        self.nocorr = nocorr
         self.shape = (len(data[0][0]) - 1, dna.featurize.num_dna_features)
 
 
 class _GenericEnv(_Env):
 
     def __init__(self, data, prior, batch, validation, pretrain=False, nocorr=False):
+        super().__init__(batch, validation, pretrain, nocorr)
         self.encode = dna.featurize.encode_dna
         data = pd.read_csv(data, header=None)
         prior = pd.read_csv(prior, header=None) if pretrain and prior is not None else None
@@ -117,8 +123,6 @@ class _GenericEnv(_Env):
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.batch = batch
-        self.nocorr = nocorr
         self.shape = (len(data[0][0]) - 1, dna.featurize.num_dna_features)
 
 
@@ -132,18 +136,15 @@ def GenericEnv(data, prior=None):
 class _MotifEnv(GuideEnv):
 
     def __init__(self, N, lam, comp, var, batch, validation, pretrain=False, nocorr=False):
+        super().__init__(batch, validation, pretrain, nocorr)
         self.N = N
         self.lam = lam
         self.comp = comp
         self.var = var
-        self.validation = validation
         self.encode = dna.featurize.encode_dna
-        self.batch = batch
-        self.nocorr = nocorr
 
     def _make_data(self, dlen=30000):
         data = motif.make_data(dlen, N=self.N, lam=self.lam, comp=self.comp, var=self.var)
-        self.prior = {}
         r = int(len(data) * self.validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
@@ -167,14 +168,12 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
 class _ClusterEnv(GuideEnv):
 
     def __init__(self, N, comp, var, batch, validation, pretrain=False, nocorr=False):
+        super().__init__(batch, validation, pretrain, nocorr)
         self.encode = dna.featurize.encode_dna
         self.shape = (20, dna.featurize.num_dna_features)
-        self.batch = batch
-        self.nocorr = nocorr
         self.N = N
         self.comp = comp
         self.var = var
-        self.validation = validation
 
     def _make_data(self, dlen=30000):
         motifs = [(motif.make_motif(self.shape[0], self.comp), 
@@ -182,7 +181,6 @@ class _ClusterEnv(GuideEnv):
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
                     for m, mu, sigma in motifs for _ in range(dlen // self.N)]
         shuffle(data)
-        self.prior = {}
         r = int(len(data) * self.validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
@@ -204,16 +202,14 @@ def ClusterEnv(N=100, comp=0.5, var=0.5):
 class _ProteinEnv(_Env):
     
     def __init__(self, source, batch, validation, pretrain=False, nocorr=False):
+        super().__init__(batch, validation, pretrain, nocorr)
         base_seq = open(f'data/MaveDB/seqs/{source}.txt').read().strip()
         df = pd.read_csv(f'data/MaveDB/scores/{source}.csv.gz', delimiter=r',', engine='python', compression='gzip')
         data = [(x, y) for x, y in zip(df.hgvs_pro.values, 1 / (1 + np.exp(-df.score.values))) if not np.isnan(y)]
         shuffle(data)
-        self.prior = {}
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.batch = batch
-        self.nocorr = nocorr
         self.shape = (len(base_seq) // 3, dna.featurize.num_aa)
         self.encode = dna.featurize.ProteinEncoder(base_seq)
 
@@ -228,17 +224,15 @@ def ProteinEnv(source):
 class _PrimerEnv(_Env):
 
     def __init__(self, mer, batch, validation, pretrain=False, nocorr=False):
+        super().__init__(batch, validation, pretrain, nocorr)
         df = pd.read_csv('data/primers/primers.txt', delimiter='\t')
         xcol = {None: 'probe', 20: 'probe_20mer', 30: 'probe_30mer'}
         assert mer in xcol, 'valid options are {None, 20, 30}'
         data = [('+' + x, y) for x, y in zip(df[xcol[mer]], df.frac_on_target)]
         shuffle(data)
-        self.prior = {}
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.batch = batch
-        self.nocorr = nocorr
         self.shape = (len(data[0][0]) - 1, dna.featurize.num_dna_features)
         self.encode = dna.featurize.encode_dna
 
@@ -254,18 +248,16 @@ class MPRAEnv(_Env):
     '''MPRA sequences scored by average expression.'''
 
     def __init__(self, batch, validation, pretrain=False, nocorr=False):
+        super().__init__(batch, validation, pretrain, nocorr)
         files = ['data/MPRA/mpra_endo_scramble.txt',
                  'data/MPRA/mpra_endo_tss_lb.txt',
                  'data/MPRA/mpra_peak_tile.txt']
         dfs = [pd.read_csv(f, delimiter='\t') for f in files]
         data = self.normalize([('+' + x, y) for df in dfs for x, y in zip(df.trimmed_seq, df.RNA_exp_ave)])
         shuffle(data)
-        self.prior = {}
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.batch = batch
-        self.nocorr = nocorr
         self.shape = (len(data[0][0]) - 1, dna.featurize.num_dna_features)
         self.encode = dna.featurize.encode_dna
 
