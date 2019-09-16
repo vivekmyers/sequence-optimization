@@ -4,6 +4,7 @@ from models.bayesian import BayesianCNN
 from models.auto_cnn import CNN
 import agents.base
 
+
 def UCBAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with a Bayesian CNN, using Thompson sampling with the
     network's uncertainty (over its parameters) to select the highest UCB
@@ -31,4 +32,3 @@ def UCBAgent(epochs=30, initial_epochs=None):
             self.model.fit(*zip(*self.seen.items()), epochs=epochs)
         
     return Agent
-

@@ -6,6 +6,7 @@ from torch import nn
 import torch.functional as F
 import utils.model
 
+
 class Autoencoder:
     '''Learns encoder and decoder for unsupervised sequence embedding.'''
 

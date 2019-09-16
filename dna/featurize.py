@@ -91,7 +91,3 @@ class ProteinEncoder:
         arr = np.zeros([*self.base_seq.shape, num_aa])
         arr[np.arange(*self.base_seq.shape), [aa_dict[i] for i in result]] = 1.
         return arr
-        
-
-
-

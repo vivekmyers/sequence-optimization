@@ -9,6 +9,7 @@ from scipy.spatial.distance import pdist, cdist, squareform
 from models.embed import *
 import utils.model
 
+
 class GaussianProcess:
     '''Fits gaussian process model to sequence data using a deep kernel function.'''
 
@@ -73,6 +74,7 @@ class GaussianProcess:
         self.sigma = sigma
         self.tau = tau
         self.eps = eps
+
 
 class FeautureGaussianProcess(GaussianProcess):
 

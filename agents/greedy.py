@@ -3,6 +3,7 @@ from random import *
 import agents.random
 from models.auto_cnn import CNN
 
+
 def GreedyAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with CNN to predict sequence values that trains with each observation.
     Greedily selects sequences with best predicions.
@@ -26,4 +27,3 @@ def GreedyAgent(epochs=30, initial_epochs=None):
             self.model.fit(*zip(*self.seen.items()), epochs=epochs)
         
     return Agent
-

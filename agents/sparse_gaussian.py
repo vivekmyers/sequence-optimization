@@ -5,6 +5,7 @@ from models.spgp import SparseGaussianProcess
 from models.auto_cnn import CNN
 import utils.mcmc
 
+
 def SparseGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k=1., M=1000):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a deep kernel sparse gaussian process regression.
@@ -46,4 +47,3 @@ def SparseGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k=1., 
             self.model.fit(*zip(*self.seen.items()), epochs=epochs) 
         
     return Agent
-

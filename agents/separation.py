@@ -5,6 +5,7 @@ from models.auto_cnn import CNN
 from models.featurizer import Featurizer
 import utils.mcmc
 
+
 def SeparationAgent(epochs=30, initial_epochs=None, k=1., dim=5):
     '''Constructs agent with CNN to predict sequence values that trains with each observation.
     Greedily selects kN sequences with best predicions, then downsamples to the N most separated.
@@ -31,4 +32,3 @@ def SeparationAgent(epochs=30, initial_epochs=None, k=1., dim=5):
             self.model.fit(*zip(*self.seen.items()), epochs=epochs) 
         
     return Agent
-

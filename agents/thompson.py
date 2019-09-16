@@ -4,6 +4,7 @@ from models.fixed_bayesian import BayesianCNN
 from models.auto_cnn import CNN
 import agents.random
 
+
 def ThompsonAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with a Bayesian CNN, using Thompson sampling with the
     network's uncertainty (over its parameters) to select batches, and 
@@ -29,4 +30,3 @@ def ThompsonAgent(epochs=30, initial_epochs=None):
             self.model.fit(*zip(*self.seen.items()), epochs=epochs)
         
     return Agent
-

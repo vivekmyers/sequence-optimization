@@ -9,6 +9,7 @@ from models.autoencoder import Autoencoder
 from scipy.spatial.distance import pdist, cdist, squareform
 import utils.model
 
+
 class SparseGaussianProcess:
     '''Fits gaussian process model using induced points.'''
 

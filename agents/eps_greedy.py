@@ -3,6 +3,7 @@ from random import *
 import agents.random
 from models.auto_cnn import CNN
 
+
 def EpsilonGreedyAgent(epochs=30, initial_epochs=None, eps=0.1):
     '''Constructs agent with CNN to predict sequence values that trains with each observation.
     Greedily selects sequences with best predicions. Act randomly with probability eps.
@@ -30,4 +31,3 @@ def EpsilonGreedyAgent(epochs=30, initial_epochs=None, eps=0.1):
             self.model.fit(*zip(*self.seen.items()), epochs=epochs)
         
     return Agent
-

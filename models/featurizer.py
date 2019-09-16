@@ -6,6 +6,7 @@ from torch import nn
 import torch.functional as F
 import utils.model
 
+
 class Featurizer:
     '''Learns predictive model over sequences, then trains autoencoder
     on convolutional output to create embedding.

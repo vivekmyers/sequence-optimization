@@ -7,6 +7,7 @@ import torch.functional as F
 from abc import ABC, abstractmethod
 import utils.model
 
+
 class Embedding(ABC):
     '''Base class for generating embeddings from sequences.'''
 

@@ -4,6 +4,7 @@ import agents.random
 from models.auto_cnn import CNN
 from models.autoencoder import Autoencoder
 
+
 def AutoGreedyAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with weighted autoencoder to predict sequence values that trains with each observation.
     Greedily selects sequences with best predicions.

@@ -2,6 +2,7 @@ import numpy as np
 from random import *
 import dna.featurize
 
+
 class BaseAgent:
     '''Template for agent classes.'''
 
@@ -34,5 +35,3 @@ class BaseAgent:
                 cache[x] = f(x)
                 return cache[x]
         return g
-
-

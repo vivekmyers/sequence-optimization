@@ -7,6 +7,7 @@ import torch.functional as F
 from models.featurizer import Featurizer
 from sklearn.cluster import KMeans
 
+
 class Bucketer:
     '''Buckets and samples from embedded sequences with Thompson sampling.'''
 
@@ -91,8 +92,7 @@ class Bucketer:
 
         return selections
 
-
-    def __init__(self, encoder, dim, shape, alpha=5e-4, 
+    def __init__(self, encoder, dim, shape, alpha=5e-4,
                     prior=(0.5, 10, 1, 1), k=100, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.

@@ -132,16 +132,26 @@ def GenericEnv(data, prior=None):
 class _MotifEnv(GuideEnv):
 
     def __init__(self, N, lam, comp, var, batch, validation, pretrain=False, nocorr=False):
-        dlen = 30000
+        self.N = N
+        self.lam = lam
+        self.comp = comp
+        self.var = var
+        self.validation = validation
         self.encode = dna.featurize.encode_dna
-        data = motif.make_data(dlen, N=N, lam=lam, comp=comp, var=var)
-        self.prior = {}
-        r = int(len(data) * validation)
-        self.env = dict(data[r:])
-        self.val = tuple(np.array(x) for x in zip(*data[:r]))
         self.batch = batch
         self.nocorr = nocorr
+
+    def _make_data(self, dlen=30000):
+        data = motif.make_data(dlen, N=self.N, lam=self.lam, comp=self.comp, var=self.var)
+        self.prior = {}
+        r = int(len(data) * self.validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
         self.shape = (len(data[0][0]) - 1, dna.featurize.num_dna_features)
+
+    def run(self, *args, **kwargs):
+        self._make_data()
+        return super().run(*args, **kwargs)
 
 
 def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
@@ -166,8 +176,7 @@ class _ClusterEnv(GuideEnv):
         self.var = var
         self.validation = validation
 
-    def _make_data(self):
-        dlen = 30000
+    def _make_data(self, dlen=30000):
         motifs = [(motif.make_motif(self.shape[0], self.comp), 
             random() - 1 / 2, random() * self.var) for _ in range(self.N)]
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
@@ -181,7 +190,6 @@ class _ClusterEnv(GuideEnv):
     def run(self, *args, **kwargs):
         self._make_data()
         return super().run(*args, **kwargs)
-
 
 
 def ClusterEnv(N=100, comp=0.5, var=0.5):
@@ -215,3 +223,60 @@ def ProteinEnv(source):
     data: use files data/MaveDB/scores/{source}.csv.gz and data/MaveDB/seqs/{source}.txt
     '''
     return partial(_ProteinEnv, source)
+
+
+class _PrimerEnv(_Env):
+
+    def __init__(self, mer, batch, validation, pretrain=False, nocorr=False):
+        df = pd.read_csv('data/primers/primers.txt', delimiter='\t')
+        xcol = {None: 'probe', 20: 'probe_20mer', 30: 'probe_30mer'}
+        assert mer in xcol, 'valid options are {None, 20, 30}'
+        data = [('+' + x, y) for x, y in zip(df[xcol[mer]], df.frac_on_target)]
+        shuffle(data)
+        self.prior = {}
+        r = int(len(data) * validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
+        self.batch = batch
+        self.nocorr = nocorr
+        self.shape = (len(data[0][0]) - 1, dna.featurize.num_dna_features)
+        self.encode = dna.featurize.encode_dna
+
+
+def PrimerEnv(mer=None):
+    '''Parameterized environment of primer sequences with on target scores.
+    mer: One of {None, 20, 30} for the primer sequence length.
+    '''
+    return partial(_PrimerEnv, mer)
+
+
+class MPRAEnv(_Env):
+    '''MPRA sequences scored by average expression.'''
+
+    def __init__(self, batch, validation, pretrain=False, nocorr=False):
+        files = ['data/MPRA/mpra_endo_scramble.txt',
+                 'data/MPRA/mpra_endo_tss_lb.txt',
+                 'data/MPRA/mpra_peak_tile.txt']
+        dfs = [pd.read_csv(f, delimiter='\t') for f in files]
+        data = self.normalize([('+' + x, y) for df in dfs for x, y in zip(df.trimmed_seq, df.RNA_exp_ave)])
+        shuffle(data)
+        self.prior = {}
+        r = int(len(data) * validation)
+        self.env = dict(data[r:])
+        self.val = tuple(np.array(x) for x in zip(*data[:r]))
+        self.batch = batch
+        self.nocorr = nocorr
+        self.shape = (len(data[0][0]) - 1, dna.featurize.num_dna_features)
+        self.encode = dna.featurize.encode_dna
+
+    def normalize(self, data):
+        maxval = max([y for x, y in data])
+        return [(x, y / maxval) for x, y in data]
+
+
+class NormalizedMPRAEnv(MPRAEnv):
+    '''Normalize MPRA scores by making score proportional to rank.'''
+    
+    def normalize(self, data):
+        x_sort = [x for x, y in sorted(data, key=lambda d: d[1])]
+        return [(x, i / len(x_sort)) for i, x in enumerate(x_sort)]

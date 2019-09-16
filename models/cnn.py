@@ -6,6 +6,7 @@ from torch import nn
 import torch.functional as F
 import utils.model
 
+
 class CNN:
     '''CNN with regularization for making simple sequence score predictions.'''
 
