@@ -83,8 +83,8 @@ if __name__ == '__main__':
     thunks = [(env, agent, i * args.reps + j, args)
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
-    pool = multiprocessing.Pool(processes=args.cpus)
-    collected = pool.map(run_agent, thunks)
+    pool = multiprocessing.Pool(processes=args.cpus, maxtasksperchild=1)
+    collected = pool.map(run_agent, thunks, chunksize=1)
 
     # Write output
     loc = ",".join(args.agents) if args.name is None else args.name
