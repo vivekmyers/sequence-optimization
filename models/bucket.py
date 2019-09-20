@@ -59,13 +59,11 @@ class Bucketer:
             prec = n * tau + n0 * tau
             return mu, np.sqrt(1 / prec)
 
-
         # construct conjugate distributions for each bucket
         taus = [lambda x=x: np.random.gamma(*conj_tau(x)) for x in buckets]
         distributions = [lambda x=x, tau=tau: np.random.normal(*conj_mu(x, tau()))
                             for x, tau in zip(buckets, taus)]
 
-        
         # select n sequences to return
         selections = []
         pts_buckets = clustering.predict(pts_em) # buckets of all unlabeled sequences

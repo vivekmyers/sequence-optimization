@@ -83,13 +83,8 @@ if __name__ == '__main__':
     thunks = [(env, agent, i * args.reps + j, args)
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
-    collected = []
-    while thunks:
-        pool = multiprocessing.Pool(processes=args.cpus)
-        collected += pool.map(run_agent, thunks[:args.cpus])
-        pool.close() # close processes to avoid offending CUDA
-        pool.join()
-        del thunks[:args.cpus]
+    pool = multiprocessing.Pool(processes=args.cpus)
+    collected = pool.map(run_agent, thunks)
 
     # Write output
     loc = ",".join(args.agents) if args.name is None else args.name
