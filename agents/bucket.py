@@ -10,9 +10,9 @@ def BucketAgent(epochs=30, initial_epochs=None, dim=5, k=1., prior=(0.5, 10, 1, 
     '''Constructs agent that buckets sequences with autoencoder embedding, then
     uses Thompson sampling to select between buckets in batches.
     dim: embedding shape
-    beta: relative weight of sequence score in generating embedding.
-    k: number of clusters.
-    prior: (mu0, n0, alpha, beta) prior over gamma and gaussian bucket score distributions.
+    beta: relative weight of sequence score in generating embedding
+    k: number of clusters, or "affinity" for dynamic number
+    prior: (mu0, n0, alpha, beta) prior over gamma and gaussian bucket score distributions
     '''
     if initial_epochs is None:
         initial_epochs = epochs // 4

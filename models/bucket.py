@@ -5,7 +5,7 @@ import torch
 from torch import nn
 import torch.functional as F
 from models.featurizer import Featurizer
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AffinityPropagation
 
 
 class Bucketer:
@@ -31,8 +31,10 @@ class Bucketer:
 
         # create buckets containing labels of seen sequences using k-means
         # of embeddings of both seen and unseen sequences
-        clustering = KMeans(self.k).fit(seen_em + pts_em)
-        buckets = [[] for i in range(self.k)]
+        method = AffinityPropagation() if self.k == 'affinity' else KMeans(self.k)
+        clustering = method.fit(seen_em + pts_em)
+        k = np.max(clustering.predict(seen_em + pts_em)) if self.k == 'affinity' else self.k
+        buckets = [[] for i in range(k)]
         for idx, val in zip(clustering.predict(seen_em) if len(seen_em) else [], self.Y):
            buckets[idx].append(val)
         buckets = list(map(np.array, buckets))
@@ -97,7 +99,7 @@ class Bucketer:
         shape: sequence shape (len, channels)
         dim: embedding dimensionality
         prior: (mu0, n0, alpha, beta) prior over gamma and gaussian bucket score distributions.
-        k: cluster count
+        k: cluster count or method
         '''
         super().__init__()
         self.X, self.Y = (), ()
