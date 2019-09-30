@@ -33,7 +33,7 @@ class Bucketer:
         # of embeddings of both seen and unseen sequences
         method = AffinityPropagation() if self.k == 'affinity' else KMeans(self.k)
         clustering = method.fit(seen_em + pts_em)
-        k = np.max(clustering.predict(seen_em + pts_em)) if self.k == 'affinity' else self.k
+        k = 1 + np.max(clustering.predict(seen_em + pts_em)) if self.k == 'affinity' else self.k
         buckets = [[] for i in range(k)]
         for idx, val in zip(clustering.predict(seen_em) if len(seen_em) else [], self.Y):
            buckets[idx].append(val)
