@@ -30,7 +30,6 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.02, k=1., beta=1.
                 self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
-            choices = []
             t = 1 + len(self.seen) // self.batch
             D = len(seqs) + len(self.seen)
             beta = lambda t: beta * 2 * np.log(D * t ** 2 * np.pi ** 2 / 3)
@@ -52,9 +51,9 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.02, k=1., beta=1.
         
     return Agent
 
-def FixedGaussianAgent(*args, **kwargs):
+def FixedGaussianAgent(*args, mb=10, **kwargs):
     '''Gaussian Agent that uses fixed scaling on uncertainty 
-    (ucb = mu + sqrt(beta) * sigma) for beta fixed.
+    (ucb = mu + sqrt(beta) * sigma) for beta fixed in batches of size mb.
     '''
 
     class Agent(GaussianAgent(*args, **kwargs)):
@@ -63,18 +62,21 @@ def FixedGaussianAgent(*args, **kwargs):
             super().__init__(*args, **kwargs)
 
         def act(self, seqs):
-            choices = []
-            mu = self.model.interpolate(seqs)
-            sigma = self.model.uncertainty(seqs)
             seqs = np.array(seqs)
-            ucb = mu + np.sqrt(self.beta) * sigma
-            selected = np.argsort(ucb)[-int(self.k * self.batch):]
-            if self.k != 1.:
-                idx = utils.mcmc.mcmc(self.batch, 
-                            self.model.embed(seqs[selected]),
-                            iters=1000)
-                selected = selected[idx]
-            return seqs[selected]
+            choices = []
+            while len(choices) < self.batch:
+                mu = self.model.interpolate(seqs)
+                sigma = self.model.uncertainty(seqs, choices)
+                ucb = mu + np.sqrt(self.beta) * sigma
+                selected = np.argsort(ucb)[-int(self.k * mb):]
+                if self.k != 1.:
+                    idx = utils.mcmc.mcmc(self.batch, 
+                                self.model.embed(seqs[selected]),
+                                iters=1000)
+                    selected = selected[idx]
+                choices += list(seqs[selected])
+                seqs = np.delete(seqs, selected)
+            return choices[:self.batch]
 
     return Agent
 

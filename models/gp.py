@@ -38,11 +38,11 @@ class GaussianProcess:
         return mu.cpu().numpy()
 
     @utils.model.batch
-    def uncertainty(self, x):
+    def uncertainty(self, x, prior=[]):
         '''Given observed points in self.X, fits gaussian
         process regression and returns predicted sigmas for each point in x.
         '''
-        X = [*self.X]
+        X = [*self.X, *prior]
         if len(X) == 0 or len(x) == 0:
             return np.full([len(x)], self.sigma)
         X, x = map(self.embed, map(np.array, [X, x]))

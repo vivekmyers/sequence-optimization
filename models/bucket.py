@@ -6,6 +6,7 @@ from torch import nn
 import torch.functional as F
 from models.featurizer import Featurizer
 from sklearn.cluster import KMeans, AffinityPropagation
+from sklearn.metrics import silhouette_score
 
 
 class Bucketer:
@@ -31,9 +32,16 @@ class Bucketer:
 
         # create buckets containing labels of seen sequences using k-means
         # of embeddings of both seen and unseen sequences
-        method = AffinityPropagation() if self.k == 'affinity' else KMeans(self.k)
+        if self.k == 'affinity':
+            method = AffinityPropagation() 
+        elif self.k == 'silhouette':
+            scores = [silhouette_score(seen_em + pts_em, KMeans(n).fit_predict(seen_em + pts_em)) 
+                            for n in range(2, 100)]
+            method = KMeans(np.array(scores).argmax() + 1)
+        else:
+            method = KMeans(self.k)
         clustering = method.fit(seen_em + pts_em)
-        k = 1 + np.max(clustering.predict(seen_em + pts_em)) if self.k == 'affinity' else self.k
+        k = 1 + np.max(clustering.predict(seen_em + pts_em))
         buckets = [[] for i in range(k)]
         for idx, val in zip(clustering.predict(seen_em) if len(seen_em) else [], self.Y):
            buckets[idx].append(val)
