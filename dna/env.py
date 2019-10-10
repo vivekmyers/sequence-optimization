@@ -177,15 +177,16 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
 
 class _ClusterEnv(GuideEnv):
 
-    def __init__(self, N, comp, var, batch, validation, pretrain=False, nocorr=False):
+    def __init__(self, N, comp, var, dlen, batch, validation, pretrain=False, nocorr=False):
         super().__init__(batch, validation, pretrain, nocorr)
         self.encode = dna.featurize.SeqEncoder(20)
         self.shape = self.encode.shape
+        self.dlen = dlen
         self.N = N
         self.comp = comp
         self.var = var
 
-    def _make_data(self, dlen=30000):
+    def _make_data(self, dlen):
         motifs = [(motif.make_motif(self.shape[0], self.comp), 
             random() - 1 / 2, random() * self.var) for _ in range(self.N)]
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
@@ -196,17 +197,18 @@ class _ClusterEnv(GuideEnv):
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
 
     def run(self, *args, **kwargs):
-        self._make_data()
+        self._make_data(self.dlen)
         return super().run(*args, **kwargs)
 
 
-def ClusterEnv(N=100, comp=0.5, var=0.5):
+def ClusterEnv(N=100, comp=0.5, var=0.5, dlen=30000):
     '''Parameterized environment with sequences in N clusters all with the
     same motif PWM.
     comp: scales with stochasticity of PWMs used to make motifs.
     var: max variance of score distribution of any cluster.
+    dlen: number of data points
     '''
-    return partial(_ClusterEnv, N, comp, var)
+    return partial(_ClusterEnv, N, comp, var, dlen)
 
 
 class _ProteinEnv(_Env):
