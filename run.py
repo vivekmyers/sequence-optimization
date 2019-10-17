@@ -4,6 +4,7 @@ import os, argparse
 import seaborn as sns
 import matplotlib.pyplot as plt
 import importlib
+import traceback
 import numpy as np
 import multiprocessing
 import torch
@@ -35,11 +36,15 @@ def run_agent(arg):
     env, agent, pos, args = arg
     if not torch.cuda.is_available() and pos == 0: print('CUDA not available')
     name = agent + ' ' * (max(map(len, args.agents)) - len(agent))
-    if torch.cuda.is_available():
-        with torch.cuda.device(pos % torch.cuda.device_count()):
+    try:
+        if torch.cuda.is_available():
+            with torch.cuda.device(pos % torch.cuda.device_count()):
+                corrs, reward, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
+        else:
             corrs, reward, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
-    else:
-        corrs, reward, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
+    except: 
+        traceback.print_exc()
+        return None
     data = dict(
         env=args.env,
         agent=agent,
@@ -84,7 +89,7 @@ if __name__ == '__main__':
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
     pool = multiprocessing.Pool(processes=args.cpus, maxtasksperchild=1)
-    collected = pool.map(run_agent, thunks, chunksize=1)
+    collected = [x for x in pool.map(run_agent, thunks, chunksize=1) if x is not None]
 
     # Write output
     loc = ",".join(args.agents) if args.name is None else args.name

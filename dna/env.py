@@ -143,7 +143,7 @@ def GenericEnv(data, prior=None):
     return partial(_GenericEnv, data, prior)
 
 
-class _MotifEnv(GuideEnv):
+class _MotifEnv(_Env):
 
     def __init__(self, N, lam, comp, var, batch, validation, pretrain=False, nocorr=False):
         super().__init__(batch, validation, pretrain, nocorr)
@@ -175,7 +175,7 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
     return partial(_MotifEnv, N, lam, comp, var)
 
 
-class _ClusterEnv(GuideEnv):
+class _ClusterEnv(_Env):
 
     def __init__(self, N, comp, var, dlen, batch, validation, pretrain=False, nocorr=False):
         super().__init__(batch, validation, pretrain, nocorr)
