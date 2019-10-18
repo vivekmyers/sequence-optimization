@@ -24,11 +24,15 @@ e.g. `python run.py --agents 'RandomAgent(epochs=10)' 'GreedyAgent(epochs=10)' -
 Install OpenAI gym:
 
 `cd gym_batgirl`
+
 `pip install -e .`
 
 To use:
+
 `env = gym.make('batgirl-v0')`
+
 `actions = env.reset('protein-BRCA1', batch=100)`
+
 `obs, regret, done, info = env.step(actions[:100])`
 
 
