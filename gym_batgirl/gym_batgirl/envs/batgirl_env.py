@@ -21,12 +21,14 @@ class Batgirl(gym.Env):
     metadata = {'render.modes': []}
 
     def __init__(self):
-       pass
+        super().__init__()
+        self.initialized = False
 
     def step(self, action):
         '''Given action consisting of self.batch unlabeled sequences, return observed 
         labels, regret, done state, and remaining actions.
         '''
+        assert self.initialized, 'environment must be reset()'
         assert all(a in self.data for a in action) and len(set(action)) == len(action) == self.batch, 'bad action'
         assert len(self.data) >= self.batch, 'done'
         obs = {a: self.data[a] for a in action}
@@ -42,11 +44,9 @@ class Batgirl(gym.Env):
         '''Reset environment with given sequence data source.
         metric: portion of sequences for regret computation
         batch: action size
-        src: one of [cluster-{N}-{comp}-{var}, motif-{N}-{comp}-{var}, 
-                        protein-{name}, primer-{20|30}, primer, mpra, guide, flank]
+        src: one of "cluster-{N}-{comp}-{var}", "motif-{N}-{comp}-{var}", 
+                        "protein-{name}", "primer-{20|30}", "primer", "mpra", "guide", "flank"
         '''
-
-
         assert 0 < metric <= 1 and batch > 0 
         arg = (batch, 0.0)
         self.metric = metric
@@ -76,7 +76,14 @@ class Batgirl(gym.Env):
             raise ValueError('bad data src')
             
         self.data = env.env
+        self.encoder = env.encode
+        self.initialized = True
         return [k for k, v in self.data.items()]
+
+    def encode(self, seq):
+        '''Convert sequence to tensor in environment.'''
+        assert self.initialized, 'environment must be reset()'
+        return self.encoder(seq)
 
 
 class _Env:

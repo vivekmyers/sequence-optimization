@@ -23,9 +23,7 @@ e.g. `python run.py --agents 'RandomAgent(epochs=10)' 'GreedyAgent(epochs=10)' -
 # Gym
 Install OpenAI gym:
 
-`cd gym_batgirl`
-
-`pip install -e .`
+`pip install -e gym_batgirl`
 
 To use:
 
