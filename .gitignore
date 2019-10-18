@@ -3,3 +3,4 @@ __pycache__
 .*.swo
 .*.swn
 .ipynb_checkpoints/
+*egg-info*
