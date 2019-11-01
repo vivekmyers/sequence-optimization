@@ -39,7 +39,7 @@ def run_job(job):
     for arg in ['nocorr', 'pretrain']:
         bool_arg(arg)
 
-    for arg in ['batch', 'cutoff', 'validation', 'env', 'reps', 'name', 'cpu']:
+    for arg in ['batch', 'cutoff', 'validation', 'env', 'reps', 'name', 'cpus']:
         val_arg(arg)
 
     try: os.mkdir(f'results/{job["name"]}')
