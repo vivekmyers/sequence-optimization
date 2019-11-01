@@ -39,9 +39,9 @@ def run_agent(arg):
     try:
         if torch.cuda.is_available():
             with torch.cuda.device(pos % torch.cuda.device_count()):
-                corrs, reward, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
+                corrs, reward, regret, time = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
         else:
-            corrs, reward, regret = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
+            corrs, reward, regret, time = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
     except: 
         traceback.print_exc()
         return None
@@ -53,8 +53,9 @@ def run_agent(arg):
         validation=args.validation,
         correlations=corrs,
         reward=reward,
-        regret=regret)
-    return dict(agent=agent, corrs=corrs, reward=reward, regret=regret, data=data)
+        regret=regret,
+        time=time)
+    return data
 
 
 if __name__ == '__main__':
@@ -95,25 +96,20 @@ if __name__ == '__main__':
     loc = ",".join(args.agents) if args.name is None else args.name
     try: os.mkdir(f'results/{loc}')
     except OSError: pass
-    np.save(f'results/{loc}/results.npy', 
-                [x['data'] for x in collected])
-    if not args.nocorr:
-        corrs = {}
+    np.save(f'results/{loc}/results.npy', collected)
+
+    def process_data(attr, title):
+        global collected
+        results = {}
         for agent in [x['agent'] for x in collected]:
-            corrs[agent] = np.array([x['corrs'] for x in collected if x['agent'] == agent]).mean(axis=0)
-        make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Correlation', 
-                    [(datum, agent) for agent, datum in corrs.items()],
-                    f'{loc}/corr')
-    rewards = {}
-    for agent in [x['agent'] for x in collected]:
-        rewards[agent] = np.array([x['reward'] for x in collected if x['agent'] == agent]).mean(axis=0)
-    make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Reward', 
-                [(datum, agent) for agent, datum in rewards.items()],
-                f'{loc}/reward')
-    regrets = {}
-    for agent in [x['agent'] for x in collected]:
-        regrets[agent] = np.array([x['regret'] for x in collected if x['agent'] == agent]).mean(axis=0)
-    make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', 'Regret', 
-                [(datum, agent) for agent, datum in regrets.items()],
-                f'{loc}/regret')
+            results[agent] = np.array([x[attr] for x in collected if x['agent'] == agent]).mean(axis=0)
+        make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', title, 
+                    [(datum, agent) for agent, datum in results.items()],
+                    f'{loc}/{attr}')
+
+    if not args.nocorr:
+        process_data('correlations', 'Correlation')
+    process_data('reward', 'Reward')
+    process_data('regret', 'Regret')
+    process_data('time', 'Time')
 

@@ -7,6 +7,7 @@ import os
 from functools import partial
 import dna.motif as motif
 import dna.featurize
+import time
 
 
 class _Env:
@@ -37,8 +38,19 @@ class _Env:
         corrs = []
         reward = []
         regret = []
+        elapsed = []
+
+        def timer(fn):
+            nonlocal elapsed
+            start = time.time()
+            result = fn()
+            end = time.time()
+            curr = elapsed[-1] if elapsed else 0
+            elapsed += [curr + end - start]
+            return result
+
         while len(data) >= self.batch and (cutoff is None or len(reward) < cutoff):
-            sampled = agent.act(list(data.keys()))
+            sampled = timer(lambda: agent.act(list(data.keys())))
             assert len(set(sampled)) == self.batch, "bad action"
             agent.observe({seq: data[seq] for seq in sampled})
             r_star = sum(sorted(data.values())[-self.batch // self.metric:])
@@ -53,7 +65,7 @@ class _Env:
             reward.append(np.array(sorted(seen))[-len(seen) // self.metric:].mean())
             pbar.update(self.batch)
         pbar.close()
-        return np.array(corrs), np.array(reward), np.array(regret)
+        return tuple(map(np.array, [corrs, reward, regret, elapsed]))
 
     def __init__(self, batch, validation, pretrain=False, nocorr=False):
         '''Initialize environment.
