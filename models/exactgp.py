@@ -19,16 +19,16 @@ class FittedGP:
 
     def __init__(self, X, Y):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.X, self.Y = map(lambda x: torch.tensor(x).to(self.device).double(), [X, Y])
-        self.model = ExactGPModel(self.X, self.Y, gpytorch.likelihoods.GaussianLikelihood()).to(self.device)
-        self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        self.X, self.Y = map(lambda x: torch.tensor(x).to(self.device).float(), [X, Y])
+        self.model = ExactGPModel(self.X, self.Y, gpytorch.likelihoods.GaussianLikelihood()).to(self.device).float()
+        self.likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
         self.likelihood.train()
         self.optim = torch.optim.Adam(self.model.parameters(), lr=0.1)
         
     def predict(self, X):
         self.model.eval()
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            result = self.model(torch.tensor(X).to(self.device).double())
+            result = self.model(torch.tensor(X).to(self.device).float())
             return result.mean.data.cpu().numpy(), torch.sqrt(result.variance).data.cpu().numpy()
 
     def fit(self, epochs=50):
