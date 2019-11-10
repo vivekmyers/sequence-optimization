@@ -6,7 +6,7 @@ from models.featurizer import Featurizer
 import utils.mcmc
 
 
-def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
+def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1.):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a fitted GPyTorch regression.
     dim: embedding dimension.
@@ -20,7 +20,7 @@ def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.embed = Featurizer(encoder, dim=dim, alpha=5e-4, shape=shape, lam=0., minibatch=100)
+            self.embed = Featurizer(self.encode, dim=dim, alpha=5e-4, shape=self.shape, lam=0., minibatch=100)
             self.beta = beta
             if len(self.prior):
                 self.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
@@ -33,13 +33,12 @@ def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
             choices = []
             model = FittedGP(self.embed(X), Y)
             model.fit(epochs=epochs)
-            while len(choices) < self.batch:
-                mu, sigma = model.predict(self.X)
-                ucb = mu + np.sqrt(self.beta) * sigma
-                selected = np.argsort(ucb)[-mb:]
-                choices += list(seqs[selected])
-                seqs = np.delete(seqs, selected)
-            return choices[:self.batch]
+            mu, sigma = model.predict(self.embed(seqs))
+            ucb = mu + np.sqrt(self.beta) * sigma
+            selected = np.argsort(ucb)[-self.batch:]
+            choices = list(seqs[selected])
+            seqs = np.delete(seqs, selected)
+            return choices
 
         def observe(self, data):
             super().observe(data)
