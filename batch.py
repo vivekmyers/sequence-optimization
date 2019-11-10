@@ -15,7 +15,7 @@ args = parser.parse_args()
 jobs = json.loads(open(args.file).read())
 
 def run_job(job):
-    print(f'Running job: {job}')
+    print(f'{job}')
 
     args = [sys.executable, f'{dir_path}/run.py']
     

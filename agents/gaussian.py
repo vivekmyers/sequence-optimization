@@ -70,7 +70,7 @@ def FixedGaussianAgent(*args, mb=10, **kwargs):
                 ucb = mu + np.sqrt(self.beta) * sigma
                 selected = np.argsort(ucb)[-int(self.k * mb):]
                 if self.k != 1.:
-                    idx = utils.mcmc.mcmc(self.batch, 
+                    idx = utils.mcmc.mcmc(mb, 
                                 self.model.embed(seqs[selected]),
                                 iters=1000)
                     selected = selected[idx]
