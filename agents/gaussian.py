@@ -6,11 +6,10 @@ from models.auto_cnn import CNN
 import utils.mcmc
 
 
-def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.02, k=1., beta=1.):
+def GaussianAgent(epochs=30, initial_epochs=None, dim=5, k=1., beta=1.):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a deep kernel gaussian process regression.
     dim: embedding dimension.
-    tau: kernel covariance parameter.
     beta: squared scaling of uncertainty for ucb.
     k: scaling of batch by which to oversample, and then find representative
         maximally-separated subset with mcmc.
@@ -23,7 +22,7 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.02, k=1., beta=1.
         def __init__(self, *args):
             super().__init__(*args)
             self.k = k
-            self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, tau=tau)
+            self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape)
             self.beta = beta
             
             if len(self.prior):
@@ -48,6 +47,7 @@ def GaussianAgent(epochs=30, initial_epochs=None, dim=5, tau=0.02, k=1., beta=1.
         def observe(self, data):
             super().observe(data)
             self.model.fit(*zip(*self.seen.items()), epochs=epochs)
+            self.model.mll()
         
     return Agent
 
@@ -80,15 +80,3 @@ def FixedGaussianAgent(*args, mb=10, **kwargs):
 
     return Agent
 
-def FeatureGaussianAgent(*args, **kwargs):
-
-    class Agent(GaussianAgent(*args, **kwargs)):
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.model = FeautureGaussianProcess(encoder=self.encode, dim=dim, shape=self.shape,
-                                            tau=tau, beta=beta, eps=0.01)
-            if len(self.prior):
-                self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
-
-    return Agent
