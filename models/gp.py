@@ -25,7 +25,7 @@ class GaussianProcess:
         n = len(self.Y)
         Y = T(self.Y).view(n, 1)
         for ep in range(epochs):
-            K_XX = self.sigma ** 2 * torch.exp(-1 / (2 * self.tau ** 2) * T(squareform(pdist(X))) ** 2)
+            K_XX = self.sigma ** 2 * torch.exp(-1 / (2 * self.tau ** 2) * T(squareform(pdist(X.cpu()))) ** 2)
             noise = torch.eye(n).to(self.embed.device).double() * self.eps
             mll = -0.5 * (Y - self.mu).t() @ torch.inverse(K_XX + noise) @ (Y - self.mu) - 0.5 * torch.det(K_XX + noise)
             self.opt.zero_grad()
@@ -87,10 +87,10 @@ class GaussianProcess:
                                     lam=lam, minibatch=minibatch)
         self.mu = mu
         self.sigma = sigma
-        self.tau = torch.tensor(tau, requires_grad=True).to(self.embed.device)
-        self.mu = torch.tensor(mu, requires_grad=True).to(self.embed.device)
-        self.sigma = torch.tensor(sigma, requires_grad=True).to(self.embed.device)
-        self.eps = torch.tensor(eps, requires_grad=True).to(self.embed.device)
+        self.tau = torch.tensor(tau, requires_grad=True, device=self.embed.device, dtype=torch.double)
+        self.mu = torch.tensor(mu, requires_grad=True, device=self.embed.device, dtype=torch.double)
+        self.sigma = torch.tensor(sigma, requires_grad=True, device=self.embed.device, dtype=torch.double)
+        self.eps = torch.tensor(eps, requires_grad=True, device=self.embed.device, dtype=torch.double)
         self.opt = torch.optim.Adam([self.tau, self.mu, self.sigma, self.eps], lr=beta)
 
 
