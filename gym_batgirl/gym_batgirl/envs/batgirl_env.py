@@ -91,7 +91,7 @@ class _Env:
     constructor to set up data.
     '''
 
-    metric = 5 # fraction of sequences to use for regret and reward
+    metric = 1 # fraction of sequences to use for regret and reward
 
     def run(self, Agent, cutoff, name, pos):
         '''Run agent, getting batch-sized list of actions (sequences) to try,
