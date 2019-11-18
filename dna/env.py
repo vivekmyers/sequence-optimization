@@ -15,7 +15,7 @@ class _Env:
     constructor to set up data.
     '''
 
-    metric = 1 # fraction of sequences to use for regret and reward
+    metric = 5 # fraction of sequences to use for regret and reward
 
     def run(self, Agent, cutoff, name, pos):
         '''Run agent, getting batch-sized list of actions (sequences) to try,
@@ -62,7 +62,7 @@ class _Env:
             if not self.nocorr:
                 predicted = np.array(agent.predict(self.val[0].copy()))
                 corrs.append(np.nan_to_num(np.corrcoef(predicted, self.val[1])[0, 1]))
-            reward.append(np.array(sorted(seen))[-len(seen) // self.metric:].sum())
+            reward.append(np.array(sorted(seen))[-len(seen) // self.metric:].mean())
             pbar.update(self.batch)
         pbar.close()
         return tuple(map(np.array, [corrs, reward, regret, elapsed]))
