@@ -20,7 +20,7 @@ if __name__ == '__main__':
         plt.figure()
         ddir = sys.argv[i]
         os.chdir(ddir)
-        data = np.load('results.npy')
+        data = np.load('results.npy', allow_pickle=True)
         dmap = [(x['agent'], x['regret'][-1]) for x in data if not x['agent'].startswith('RandomAgent')]
         collected = [(k, np.array([y for x, y in list(g)])) for k, g in groupby(dmap, lambda x: x[0])]
         dist = [(a, b.mean(), scale * b.std() / np.sqrt(len(b))) for a, b in collected]
@@ -40,6 +40,6 @@ if __name__ == '__main__':
         plt.ylabel('Final Normalized Regret')
         plt.title(data[0]['env'])
         plt.tight_layout()
-        plt.savefig(f'final.png')
+        plt.savefig(f'final.png', dpi=500)
         os.chdir('..')
 
