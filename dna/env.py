@@ -115,6 +115,7 @@ class GuideEnv(_Env):
         assert batch < len(self.env)
 
 
+
 class FlankEnv(_Env):
     '''Simpler environment using flanking sequences.'''
 
@@ -189,11 +190,13 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
 
 class _ClusterEnv(_Env):
 
-    def __init__(self, N, comp, var, dlen, batch, validation, pretrain=False, nocorr=False):
+    def __init__(self, N, comp, var, dlen, padding, zclust, batch, validation, pretrain=False, nocorr=False):
         super().__init__(batch, validation, pretrain, nocorr)
         self.encode = dna.featurize.SeqEncoder(20)
         self.shape = self.encode.shape
         self.dlen = dlen
+        self.padding = padding
+        self.zclust = zclust
         self.N = N
         self.comp = comp
         self.var = var
@@ -203,6 +206,10 @@ class _ClusterEnv(_Env):
             random() - 1 / 2, random() * self.var) for _ in range(self.N)]
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
                     for m, mu, sigma in motifs for _ in range(dlen // self.N)]
+        motif.pad(data, n=len(data) + self.padding)
+        zmotif = motif.make_motif(self.shape[0], self.comp)
+        data += [(choice('+-') + motif.seq(zmotif), 0.) 
+                    for _ in range(self.zclust)]
         shuffle(data)
         r = int(len(data) * self.validation)
         self.env = dict(data[r:])
@@ -213,14 +220,16 @@ class _ClusterEnv(_Env):
         return super().run(*args, **kwargs)
 
 
-def ClusterEnv(N=100, comp=0.5, var=0.5, dlen=30000):
+def ClusterEnv(N=100, comp=0.5, var=0.5, dlen=30000, padding=0, zclust=0):
     '''Parameterized environment with sequences in N clusters all with the
     same motif PWM.
     comp: scales with stochasticity of PWMs used to make motifs.
     var: max variance of score distribution of any cluster.
-    dlen: number of data points
+    dlen: number of data points.
+    padding: additional random sequences with 0 labels.
+    zclust: additional cluster size around 0.
     '''
-    return partial(_ClusterEnv, N, comp, var, dlen)
+    return partial(_ClusterEnv, N, comp, var, dlen, padding, zclust)
 
 
 class _ProteinEnv(_Env):

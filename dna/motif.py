@@ -10,6 +10,16 @@ def seq(m):
     '''Sample a sequence s from PWM m.'''
     return ''.join(np.random.choice(list('ATCG'), p=p) for p in m)
 
+def uniform(n):
+    '''Return uniformly sampled sequence of length m.'''
+    return choice('+-') + seq(np.array([[0.25] * 4] * (n - 1)))
+
+def pad(D, n=30000):
+    '''Add zero-label random sequences to D until |D| = n.'''
+    sz = len(D[0][0])
+    while len(D) < n:
+        D.append((uniform(sz), 0.))
+
 @np.vectorize
 def invert(s):
     return 'TAGC'['ATCG'.index(s)]
