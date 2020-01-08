@@ -4,6 +4,7 @@ import agents.random
 from models.exactgp import FittedGP
 from models.featurizer import Featurizer
 import utils.mcmc
+import torch
 from torch.distributions.multivariate_normal import MultivariateNormal
 
 
@@ -64,7 +65,6 @@ def ThompsonGPAgent(epochs=30, initial_epochs=None, dim=5):
         def __init__(self, *args):
             super().__init__(*args)
             self.embed = Featurizer(self.encode, dim=dim, alpha=5e-4, shape=self.shape, lam=0., minibatch=100)
-            self.beta = beta
             if len(self.prior):
                 self.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
@@ -76,8 +76,18 @@ def ThompsonGPAgent(epochs=30, initial_epochs=None, dim=5):
             model = FittedGP(self.embed(X), Y)
             model.fit(epochs=epochs)
             mu, cov = model.predict_(self.embed(seqs))
-            mvn = MultivariateNormal(mu, covariance_matrix=cov) 
-            return [seqs[np.argmax(mvn.sample().data.numpy())] for i in range(self.batch)]
+            print(cov)
+            mvn = MultivariateNormal(torch.tensor(mu), covariance_matrix=torch.tensor(cov) + 1e-4 * torch.eye(cov.shape[0])) 
+            mask = np.array([False for _ in seqs])
+            choices = []
+            for i in range(self.batch):
+                samp = mvn.sample().data.numpy()
+                low = samp.min()
+                samp[mask] = low
+                idx = np.argmax(samp)
+                mask[idx] = True
+                choices.append(seqs[idx])
+            return choices
 
         def observe(self, data):
             super().observe(data)

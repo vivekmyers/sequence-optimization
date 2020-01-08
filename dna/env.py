@@ -205,12 +205,16 @@ class _ClusterEnv(_Env):
     def _make_data(self, dlen):
         motifs = [(motif.make_motif(self.shape[0], self.comp), 
             random() - 1 / 2, random() * self.var) for _ in range(self.N)]
-        sizes = np.arange(self.N)
-        sizes += (sizes[-1] - sizes[0] * self.skew) / (self.skew - 1)
-        sizes *= self.dlen / sizes.sum()
-        sizes = np.rint(sizes).astype(np.int)
+        if self.skew > 1.:
+            sizes = np.arange(self.N, dtype=np.float64)
+            sizes += (sizes[-1] - sizes[0] * self.skew) / (self.skew - 1.)
+            sizes *= self.dlen / sizes.sum()
+            sizes = np.rint(sizes).astype(np.int)
+        else:
+            sizes = np.rint(np.array([self.dlen // self.N] * self.N)).astype(np.int)
+        print(sizes)
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
-                    for i, (m, mu, sigma) in motifs for z in range(sizes[i])]
+                    for i, (m, mu, sigma) in enumerate(motifs) for z in range(sizes[i])]
         motif.pad(data, n=len(data) + self.padding)
         zmotif = motif.make_motif(self.shape[0], self.comp)
         data += [(choice('+-') + motif.seq(zmotif), 0.) 
