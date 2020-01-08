@@ -190,7 +190,7 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
 
 class _ClusterEnv(_Env):
 
-    def __init__(self, N, comp, var, dlen, padding, zclust, batch, validation, pretrain=False, nocorr=False):
+    def __init__(self, N, comp, var, dlen, padding, zclust, skew, batch, validation, pretrain=False, nocorr=False):
         super().__init__(batch, validation, pretrain, nocorr)
         self.encode = dna.featurize.SeqEncoder(20)
         self.shape = self.encode.shape
@@ -200,12 +200,17 @@ class _ClusterEnv(_Env):
         self.N = N
         self.comp = comp
         self.var = var
+        self.skew = skew
 
     def _make_data(self, dlen):
         motifs = [(motif.make_motif(self.shape[0], self.comp), 
             random() - 1 / 2, random() * self.var) for _ in range(self.N)]
+        sizes = np.arange(self.N)
+        sizes += (sizes[-1] - sizes[0] * self.skew) / (self.skew - 1)
+        sizes *= self.dlen / sizes.sum()
+        sizes = np.rint(sizes).astype(np.int)
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
-                    for m, mu, sigma in motifs for _ in range(dlen // self.N)]
+                    for i, (m, mu, sigma) in motifs for z in range(sizes[i])]
         motif.pad(data, n=len(data) + self.padding)
         zmotif = motif.make_motif(self.shape[0], self.comp)
         data += [(choice('+-') + motif.seq(zmotif), 0.) 
@@ -220,7 +225,7 @@ class _ClusterEnv(_Env):
         return super().run(*args, **kwargs)
 
 
-def ClusterEnv(N=100, comp=0.5, var=0.5, dlen=30000, padding=0, zclust=0):
+def ClusterEnv(N=100, comp=0.5, var=0.5, dlen=30000, padding=0, zclust=0, skew=1.):
     '''Parameterized environment with sequences in N clusters all with the
     same motif PWM.
     comp: scales with stochasticity of PWMs used to make motifs.
@@ -228,8 +233,9 @@ def ClusterEnv(N=100, comp=0.5, var=0.5, dlen=30000, padding=0, zclust=0):
     dlen: number of data points.
     padding: additional random sequences with 0 labels.
     zclust: additional cluster size around 0.
+    skew: size ratio between largest and smallest clusters, with other sizes interpolated linearly.
     '''
-    return partial(_ClusterEnv, N, comp, var, dlen, padding, zclust)
+    return partial(_ClusterEnv, N, comp, var, dlen, padding, zclust, skew)
 
 
 class _ProteinEnv(_Env):

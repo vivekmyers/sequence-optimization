@@ -31,6 +31,12 @@ class FittedGP:
             result = self.model(torch.tensor(X).to(self.device).float())
             return result.mean.data.cpu().numpy(), torch.sqrt(result.variance).data.cpu().numpy()
 
+    def predict_(self, X):
+        self.model.eval()
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            result = self.model(torch.tensor(X).to(self.device).float())
+            return result.mean.data.cpu().numpy(), result.covariance_matrix.data.cpu().numpy()
+
     def fit(self, epochs=50):
         self.model.train()
         mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model)

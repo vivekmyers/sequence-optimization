@@ -4,6 +4,7 @@ import agents.random
 from models.exactgp import FittedGP
 from models.featurizer import Featurizer
 import utils.mcmc
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 
 def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
@@ -31,10 +32,13 @@ def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
             seqs = np.array(seqs)
             X, Y = map(np.array, zip(*self.seen.items()))
             choices = []
+            mu = None
             while len(choices) < self.batch:
                 model = FittedGP(self.embed(X), Y)
                 model.fit(epochs=epochs)
-                mu, sigma = model.predict(self.embed(seqs))
+                mu_, sigma = model.predict(self.embed(seqs))
+                if mu is None:
+                    mu = mu_
                 ucb = mu + np.sqrt(self.beta) * sigma
                 selected = np.argsort(ucb)[-mb:]
                 choices += list(seqs[selected])
@@ -42,6 +46,38 @@ def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
                 Y = np.concatenate((Y, mu[selected]))
                 seqs = np.delete(seqs, selected)
             return choices[:self.batch]
+
+        def observe(self, data):
+            super().observe(data)
+            self.embed.fit(*zip(*self.seen.items()), epochs=epochs)
+        
+    return Agent
+
+
+def ThompsonGPAgent(epochs=30, initial_epochs=None, dim=5):
+    '''Agent using batch GP Thompson sampling.'''
+    if initial_epochs is None:
+        initial_epochs = epochs // 4
+
+    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
+
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.embed = Featurizer(self.encode, dim=dim, alpha=5e-4, shape=self.shape, lam=0., minibatch=100)
+            self.beta = beta
+            if len(self.prior):
+                self.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
+        
+        def act(self, seqs):
+            if not self.seen.items():
+                return sample(seqs, self.batch)
+            seqs = np.array(seqs)
+            X, Y = map(np.array, zip(*self.seen.items()))
+            model = FittedGP(self.embed(X), Y)
+            model.fit(epochs=epochs)
+            mu, cov = model.predict_(self.embed(seqs))
+            mvn = MultivariateNormal(mu, covariance_matrix=cov) 
+            return [seqs[np.argmax(mvn.sample().data.numpy())] for i in range(self.batch)]
 
         def observe(self, data):
             super().observe(data)
