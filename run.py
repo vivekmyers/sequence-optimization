@@ -10,6 +10,7 @@ import multiprocessing
 import torch
 import signal
 import dna.env
+import random
 sns.set_style('darkgrid')
 signal.signal(signal.SIGINT, lambda x, y: exit(1))
 np.seterr(divide='ignore', invalid='ignore')
@@ -71,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='GuideEnv', help='environment to run agents')
     parser.add_argument('--reps', type=int, default=1, help='number of trials to average')
     parser.add_argument('--name', type=str, default=None, help='output directory')
-    parser.add_argument('--cpus', type=int, default=multiprocessing.cpu_count(), help='number of agents to run concurrurently')
+    parser.add_argument('--cpus', type=int, default=multiprocessing.cpu_count(), help='number of agents to run concurrently')
 
     args = parser.parse_args()
 
@@ -89,6 +90,7 @@ if __name__ == '__main__':
     thunks = [(env, agent, i * args.reps + j, args)
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
+    random.shuffle(thunks)
     pool = multiprocessing.Pool(processes=args.cpus, maxtasksperchild=1)
     collected = [x for x in pool.map(run_agent, thunks, chunksize=1) if x is not None]
 
