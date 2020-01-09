@@ -8,6 +8,8 @@ from functools import partial
 import dna.motif as motif
 import dna.featurize
 import time
+import gc
+import torch
 
 
 class _Env:
@@ -50,9 +52,15 @@ class _Env:
             return result
 
         while len(data) >= self.batch and (cutoff is None or len(reward) < cutoff):
-            sampled = timer(lambda: agent.act(list(data.keys())))
-            assert len(set(sampled)) == self.batch, "bad action"
-            agent.observe({seq: data[seq] for seq in sampled})
+            try:
+                sampled = timer(lambda: agent.act(list(data.keys())))
+                assert len(set(sampled)) == self.batch, "bad action"
+                agent.observe({seq: data[seq] for seq in sampled})
+            except RuntimeError:
+                del agent
+                gc.collect()
+                torch.cuda.empty_cache()
+                return tuple(map(np.array, [corrs, reward, regret, elapsed]))
             r_star = sum(sorted(data.values())[-self.batch // self.metric:])
             r = sum(sorted([data[seq] for seq in sampled])[-self.batch // self.metric:])
             regret.append(([0.] + regret)[-1] + r_star - r)
@@ -212,7 +220,6 @@ class _ClusterEnv(_Env):
             sizes = np.rint(sizes).astype(np.int)
         else:
             sizes = np.rint(np.array([self.dlen // self.N] * self.N)).astype(np.int)
-        print(sizes)
         data = [(choice('+-') + motif.seq(m), 1 / (1 + np.exp(-np.random.normal(mu, sigma))))
                     for i, (m, mu, sigma) in enumerate(motifs) for z in range(sizes[i])]
         motif.pad(data, n=len(data) + self.padding)

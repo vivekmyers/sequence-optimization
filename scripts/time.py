@@ -34,7 +34,7 @@ if __name__ == '__main__':
             plt.title(f'{data[0]["env"]},batch={data[0]["batch"]}')
             plt.legend()
             plt.tight_layout()
-            plt.savefig(f'time.png', dpi=500)
+            plt.savefig(f'combined.png', dpi=500)
             os.chdir('..')
         except Exception as e:
             os.chdir('..')

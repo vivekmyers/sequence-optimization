@@ -76,7 +76,6 @@ def ThompsonGPAgent(epochs=30, initial_epochs=None, dim=5):
             model = FittedGP(self.embed(X), Y)
             model.fit(epochs=epochs)
             mu, cov = model.predict_(self.embed(seqs))
-            print(cov)
             mvn = MultivariateNormal(torch.tensor(mu), covariance_matrix=torch.tensor(cov) + 1e-4 * torch.eye(cov.shape[0])) 
             mask = np.array([False for _ in seqs])
             choices = []

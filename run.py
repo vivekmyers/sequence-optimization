@@ -104,7 +104,14 @@ if __name__ == '__main__':
         global collected
         results = {}
         for agent in [x['agent'] for x in collected]:
-            results[agent] = np.array([x[attr] for x in collected if x['agent'] == agent]).mean(axis=0)
+            data = [x[attr] for x in collected if x['agent'] == agent]
+            n = max(map(len, data))
+            def pad(x, n):
+                x = list(x)
+                while len(x) < n:
+                    x.append(np.nan)
+                return x
+            results[agent] = np.array([pad(x, n) for x in data]).mean(axis=0)
         make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', title, 
                     [(datum, agent) for agent, datum in results.items()],
                     f'{loc}/{attr}')
