@@ -34,9 +34,9 @@ def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
             X, Y = map(np.array, zip(*self.seen.items()))
             choices = []
             mu = None
+            model = FittedGP(self.embed(X), Y)
+            model.fit(epochs=epochs)
             while len(choices) < self.batch:
-                model = FittedGP(self.embed(X), Y)
-                model.fit(epochs=epochs)
                 mu_, sigma = model.predict(self.embed(seqs))
                 if mu is None:
                     mu = mu_
@@ -46,6 +46,8 @@ def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
                 X = np.concatenate((X, seqs[selected]))
                 Y = np.concatenate((Y, mu[selected]))
                 seqs = np.delete(seqs, selected)
+                mu = np.delete(mu, selected)
+                model.update(self.embed(X), Y)
             return choices[:self.batch]
 
         def observe(self, data):

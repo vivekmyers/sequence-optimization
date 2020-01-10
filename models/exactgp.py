@@ -46,4 +46,8 @@ class FittedGP:
             loss = -mll(output, self.Y)
             loss.backward()
             self.optim.step()
+
+    def update(self, X, Y):
+        self.X, self.Y = map(lambda x: torch.tensor(x).to(self.device).float(), [X, Y])
+        self.model.set_train_data(self.X, self.Y, strict=False)
             
