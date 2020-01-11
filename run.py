@@ -34,10 +34,13 @@ def make_plot(title, yaxis, data, loc):
 
 def run_agent(arg):
     '''Run agent in provided environment, with given arguments.'''
-    env, agent, pos, args = arg
+    env, agent, pos, args, seed = arg
     if not torch.cuda.is_available() and pos == 0: print('CUDA not available')
     name = agent + ' ' * (max(map(len, args.agents)) - len(agent))
     try:
+        random.seed(seed[1])
+        np.random.seed(seed[1])
+        torch.manual_seed(seed[1])
         if torch.cuda.is_available():
             with torch.cuda.device(pos % torch.cuda.device_count()):
                 corrs, reward, regret, time = env.run(eval(agent, mods, {}), args.cutoff, name, pos)
@@ -55,7 +58,8 @@ def run_agent(arg):
         correlations=corrs,
         reward=reward,
         regret=regret,
-        time=time)
+        time=time,
+        seed=seed)
     return data
 
 
@@ -73,8 +77,16 @@ if __name__ == '__main__':
     parser.add_argument('--reps', type=int, default=1, help='number of trials to average')
     parser.add_argument('--name', type=str, default=None, help='output directory')
     parser.add_argument('--cpus', type=int, default=multiprocessing.cpu_count(), help='number of agents to run concurrently')
+    parser.add_argument('--seed', type=int, default=None, help='random seed')
+
 
     args = parser.parse_args()
+
+    if args.seed is not None:
+        seed = args.seed
+    else:
+        seed = random.randint(0, (1 << 32) - 1)
+    random.seed(seed)
 
     env = eval(f'{args.env}', dna.env.__dict__, {})(batch=args.batch, validation=args.validation, pretrain=args.pretrain, nocorr=args.nocorr)
 
@@ -87,7 +99,8 @@ if __name__ == '__main__':
         mods.update(mod.__dict__)
 
     # Run agents
-    thunks = [(env, agent, i * args.reps + j, args)
+    thunks = [(env, agent, i * args.reps + j, args, 
+                (seed, random.randint(0, (1 << 32) - 1)))
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
     random.shuffle(thunks)
