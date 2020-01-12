@@ -34,7 +34,7 @@ def make_plot(title, yaxis, data, loc):
 
 def run_agent(arg):
     '''Run agent in provided environment, with given arguments.'''
-    env, agent, pos, args, seed = arg
+    env, agent, pos, args, seed, loc = arg
     if not torch.cuda.is_available() and pos == 0: print('CUDA not available')
     name = agent + ' ' * (max(map(len, args.agents)) - len(agent))
     try:
@@ -60,6 +60,13 @@ def run_agent(arg):
         regret=regret,
         time=time,
         seed=seed)
+    existing = []
+    try:
+        existing = list(np.load(f'results/{loc}/results.npy', allow_pickle=True))
+    except:
+        pass
+    existing.append(data)
+    np.save(f'results/{loc}/results.npy', existing)
     return data
 
 
@@ -99,8 +106,12 @@ if __name__ == '__main__':
         mods.update(mod.__dict__)
 
     # Run agents
+    loc = ",".join(args.agents) if args.name is None else args.name
+    assert len(loc) > 0
+    try: os.remove(f'results/{loc}/results.npy')
+    except OSError: pass
     thunks = [(env, agent, i * args.reps + j, args, 
-                (seed, random.randint(0, (1 << 32) - 1)))
+                (seed, random.randint(0, (1 << 32) - 1)), loc)
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
     random.shuffle(thunks)
@@ -108,7 +119,6 @@ if __name__ == '__main__':
     collected = [x for x in pool.map(run_agent, thunks, chunksize=1) if x is not None]
 
     # Write output
-    loc = ",".join(args.agents) if args.name is None else args.name
     try: os.mkdir(f'results/{loc}')
     except OSError: pass
     np.save(f'results/{loc}/results.npy', collected)

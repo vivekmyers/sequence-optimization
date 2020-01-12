@@ -10,6 +10,7 @@ import dna.featurize
 import time
 import gc
 import torch
+import traceback
 
 
 class _Env:
@@ -57,6 +58,7 @@ class _Env:
                 assert len(set(sampled)) == self.batch, "bad action"
                 agent.observe({seq: data[seq] for seq in sampled})
             except RuntimeError:
+                traceback.print_exc()
                 del agent
                 gc.collect()
                 torch.cuda.empty_cache()
