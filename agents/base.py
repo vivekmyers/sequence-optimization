@@ -1,6 +1,6 @@
 import numpy as np
 from random import *
-import dna.featurize
+import environment.featurize
 
 
 class BaseAgent:

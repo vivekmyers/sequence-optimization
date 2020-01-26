@@ -9,7 +9,7 @@ import numpy as np
 import multiprocessing
 import torch
 import signal
-import dna.env
+import environment.env
 import random
 sns.set_style('darkgrid')
 signal.signal(signal.SIGINT, lambda x, y: exit(1))
@@ -55,6 +55,7 @@ def run_agent(arg):
         batch=args.batch,
         pretrain=args.pretrain,
         validation=args.validation,
+        metric=args.metric,
         correlations=corrs,
         reward=reward,
         regret=regret,
@@ -80,6 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretrain', action='store_true', help='pretrain on azimuth data')
     parser.add_argument('--validation', type=float, default=0.2, help='validation data portion')
     parser.add_argument('--nocorr', action='store_true', help='do not compute prediction correlations')
+    parser.add_argument('--metric', type=float, default=0.2, help='percent of sequences used for metric computation')
     parser.add_argument('--env', type=str, default='GuideEnv', help='environment to run agents')
     parser.add_argument('--reps', type=int, default=1, help='number of trials to average')
     parser.add_argument('--name', type=str, default=None, help='output directory')
@@ -95,7 +97,7 @@ if __name__ == '__main__':
         seed = random.randint(0, (1 << 32) - 1)
     random.seed(seed)
 
-    env = eval(f'{args.env}', dna.env.__dict__, {})(batch=args.batch, validation=args.validation, pretrain=args.pretrain, nocorr=args.nocorr)
+    env = eval(f'{args.env}', environment.env.__dict__, {})(batch=args.batch, validation=args.validation, pretrain=args.pretrain, nocorr=args.nocorr, metric=args.metric)
 
     # Load agent modules
     files = [f for f in os.listdir('agents') if f.endswith('.py')]
