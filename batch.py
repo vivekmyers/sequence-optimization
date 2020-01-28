@@ -34,12 +34,10 @@ def run_job(job):
         if arg in job:
             args += [f'--{arg}', *map(str, job[arg])]
 
-    multi_arg('agents')
+    for arg in ['agents', 'metrics']:
+        multi_arg(arg)
 
-    for arg in ['nocorr', 'pretrain']:
-        bool_arg(arg)
-
-    for arg in ['batch', 'cutoff', 'validation', 'env', 'reps', 'name', 'cpus']:
+    for arg in ['batch', 'cutoff', 'validation', 'env', 'reps', 'name', 'cpus', 'seed']:
         val_arg(arg)
 
     try: os.mkdir(f'results/{job["name"]}')

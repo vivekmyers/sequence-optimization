@@ -5,9 +5,9 @@ from random import *
 import pickle
 import os
 from functools import partial
-import environment.motif as motif
-import environment.metrics as metrics
-import environment.featurize
+import gym_batgirl.utils.motif as motif
+import gym_batgirl.utils.metrics as metrics
+import gym_batgirl.utils.featurize as featurize
 import time
 import gc
 import torch
@@ -85,13 +85,13 @@ class GuideEnv(_Env):
 
     def __init__(self, batch, validation):
         super().__init__(batch, validation)
-        files=[f'data/DeepCRISPR/{f}' for f in os.listdir('data/DeepCRISPR') if f.endswith('.csv')]
+        files=[f'gym_batgirl/data/DeepCRISPR/{f}' for f in os.listdir('gym_batgirl/data/DeepCRISPR') if f.endswith('.csv')]
         dfs = list(map(pd.read_csv, files))
         data = [(strand + seq, score) for df in dfs
             for _, strand, seq, score in 
             df[['Strand', 'sgRNA', 'Normalized efficacy']].itertuples()]
         shuffle(data)
-        self.encode = environment.featurize.SeqEncoder(len(data[0][0]) - 1)
+        self.encode = featurize.SeqEncoder(len(data[0][0]) - 1)
         self.shape = self.encode.shape
         r = int(validation * len(data))
         self.env = dict(data[r:])
@@ -105,7 +105,7 @@ class FlankEnv(_Env):
 
     def __init__(self, batch, validation):
         super().__init__(batch, validation)
-        df = pickle.load(open('data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
+        df = pickle.load(open('gym_batgirl/data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
         data = [*zip([f'+{x}' for x in df.index], df.values)]
         shuffle(data)
         dlen = 30000
@@ -113,7 +113,7 @@ class FlankEnv(_Env):
         r = int(dlen * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.encode = environment.featurize.SeqEncoder(len(data[0][0]) - 1)
+        self.encode = featurize.SeqEncoder(len(data[0][0]) - 1)
         self.shape = self.encode.shape
 
 
@@ -126,7 +126,7 @@ class _GenericEnv(_Env):
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.encode = environment.featurize.SeqEncoder(len(data[0][0]) - 1)
+        self.encode = featurize.SeqEncoder(len(data[0][0]) - 1)
         self.shape = self.encode.shape
 
 
@@ -149,7 +149,7 @@ class _MotifEnv(_Env):
         r = int(len(data) * self.validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.encode = environment.featurize.SeqEncoder(len(data[0][0]) - 1)
+        self.encode = featurize.SeqEncoder(len(data[0][0]) - 1)
         self.shape = self.encode.shape
 
     def run(self, *args, **kwargs):
@@ -171,7 +171,7 @@ class _ClusterEnv(_Env):
 
     def __init__(self, N, comp, var, dlen, padding, zclust, skew, batch, validation):
         super().__init__(batch, validation)
-        self.encode = environment.featurize.SeqEncoder(20)
+        self.encode = featurize.SeqEncoder(20)
         self.shape = self.encode.shape
         self.dlen = dlen
         self.padding = padding
@@ -224,14 +224,14 @@ class _ProteinEnv(_Env):
     
     def __init__(self, source, batch, validation):
         super().__init__(batch, validation)
-        base_seq = open(f'data/MaveDB/seqs/{source}.txt').read().strip()
-        df = pd.read_csv(f'data/MaveDB/scores/{source}.csv.gz', delimiter=r',', engine='python', compression='gzip')
+        base_seq = open(f'gym_batgirl/data/MaveDB/seqs/{source}.txt').read().strip()
+        df = pd.read_csv(f'gym_batgirl/data/MaveDB/scores/{source}.csv.gz', delimiter=r',', engine='python', compression='gzip')
         data = [(x, y) for x, y in zip(df.hgvs_pro.values, 1 / (1 + np.exp(-df.score.values))) if not np.isnan(y)]
         shuffle(data)
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.encode = environment.featurize.ProteinEncoder(base_seq)
+        self.encode = featurize.ProteinEncoder(base_seq)
         self.shape = self.encode.shape
 
 
@@ -246,7 +246,7 @@ class _PrimerEnv(_Env):
 
     def __init__(self, mer, batch, validation):
         super().__init__(batch, validation)
-        df = pd.read_csv('data/primers/primers.txt', delimiter='\t')
+        df = pd.read_csv('gym_batgirl/data/primers/primers.txt', delimiter='\t')
         xcol = {None: 'probe', 20: 'probe_20mer', 30: 'probe_30mer'}
         assert mer in xcol, 'valid options are {None, 20, 30}'
         data = [('+' + x, y) for x, y in zip(df[xcol[mer]], df.frac_on_target)]
@@ -254,7 +254,7 @@ class _PrimerEnv(_Env):
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.encode = environment.featurize.SeqEncoder(len(data[0][0]) - 1)
+        self.encode = featurize.SeqEncoder(len(data[0][0]) - 1)
         self.shape = self.encode.shape
 
 
@@ -270,16 +270,16 @@ class MPRAEnv(_Env):
 
     def __init__(self, batch, validation):
         super().__init__(batch, validation)
-        files = ['data/MPRA/mpra_endo_scramble.txt',
-                 'data/MPRA/mpra_endo_tss_lb.txt',
-                 'data/MPRA/mpra_peak_tile.txt']
+        files = ['gym_batgirl/data/MPRA/mpra_endo_scramble.txt',
+                 'gym_batgirl/data/MPRA/mpra_endo_tss_lb.txt',
+                 'gym_batgirl/data/MPRA/mpra_peak_tile.txt']
         dfs = [pd.read_csv(f, delimiter='\t') for f in files]
         data = self.normalize([('+' + x, y) for df in dfs for x, y in zip(df.trimmed_seq, df.RNA_exp_ave)])
         shuffle(data)
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
-        self.encode = environment.featurize.SeqEncoder(len(data[0][0]) - 1)
+        self.encode = featurize.SeqEncoder(len(data[0][0]) - 1)
         self.shape = self.encode.shape
 
     def normalize(self, data):

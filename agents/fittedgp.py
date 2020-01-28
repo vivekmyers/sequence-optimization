@@ -8,24 +8,20 @@ import torch
 from torch.distributions.multivariate_normal import MultivariateNormal
 
 
-def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
+def FittedGaussianAgent(epochs=30, dim=5, beta=1., mb=10):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a fitted GPyTorch regression.
     dim: embedding dimension.
     beta: squared scaling of uncertainty for ucb.
     mb: actions selected before refitting GP.
     '''
-    if initial_epochs is None:
-        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
+    class Agent(agents.random.RandomAgent(epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.embed = Featurizer(self.encode, dim=dim, alpha=5e-4, shape=self.shape, lam=0., minibatch=100)
             self.beta = beta
-            if len(self.prior):
-                self.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             if not self.seen.items():
@@ -57,18 +53,14 @@ def FittedGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=1., mb=10):
     return Agent
 
 
-def ThompsonGPAgent(epochs=30, initial_epochs=None, dim=5):
+def ThompsonGPAgent(epochs=30, dim=5):
     '''Agent using batch GP Thompson sampling.'''
-    if initial_epochs is None:
-        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
+    class Agent(agents.random.RandomAgent(epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.embed = Featurizer(self.encode, dim=dim, alpha=5e-4, shape=self.shape, lam=0., minibatch=100)
-            if len(self.prior):
-                self.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             if not self.seen.items():

@@ -4,9 +4,9 @@
 # Usage
 Any agent in the agents directory can be tested:
 
-`python run.py --agents [Agent1 Agent2 ...] --batch [batchsize]`
+`python run.py --agents [Agent1 Agent2 ...] --metrics [Metric1 Metric2 ...] --batch [batchsize]`
 
-e.g. `python run.py --agents 'RandomAgent(epochs=10)' 'GreedyAgent(epochs=10)' --batch 1000`
+e.g. `python run.py --agents 'RandomAgent(epochs=10)' 'GreedyAgent(epochs=10)' --metrics 'Regret(0.2)' --batch 100 --reps 10`
 
 # Flags
 
@@ -15,10 +15,6 @@ e.g. `python run.py --agents 'RandomAgent(epochs=10)' 'GreedyAgent(epochs=10)' -
 `--reps [N]`: average multiple trials.
 
 `--cutoff [N]`: limit to N batches.
-
-`--pretrain`: use pretraining data.
-
-`--nocorr`: compute no prediction correlations.
 
 # Gym
 Install OpenAI gym:

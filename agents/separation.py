@@ -6,20 +6,16 @@ from models.featurizer import Featurizer
 import utils.mcmc
 
 
-def SeparationAgent(epochs=30, initial_epochs=None, k=1., dim=5):
+def SeparationAgent(epochs=30, k=1., dim=5):
     '''Constructs agent with CNN to predict sequence values that trains with each observation.
     Greedily selects kN sequences with best predicions, then downsamples to the N most separated.
     '''
-    if initial_epochs is None:
-        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
+    class Agent(agents.random.RandomAgent(epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.model = Featurizer(self.encode, shape=self.shape, dim=dim)
-            if len(self.prior):
-                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             selections = np.array(list(zip(*sorted(zip(self.model.predict(seqs), seqs))[-int(k * self.batch):]))[1])

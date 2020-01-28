@@ -7,21 +7,17 @@ from torch.distributions import Normal
 from torch import tensor
 
 
-def PseudoThompsonAgent(epochs=30, initial_epochs=None):
+def PseudoThompsonAgent(epochs=30):
     '''Constructs agent with a CNN trained to predict gaussians with uncertainty, 
     using Thompson sampling with the network's uncertainty to select batches, and 
     fitting the model to update the predicted distributions between batches.
     '''
-    if initial_epochs is None:
-        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
+    class Agent(agents.random.RandomAgent(epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.model = UncertainCNN(encoder=self.encode, shape=self.shape)
-            if len(self.prior):
-                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs)
             
         def act(self, seqs):
             mu, sigma = map(tensor, self.model.predict(seqs))
