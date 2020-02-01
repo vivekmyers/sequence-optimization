@@ -3,7 +3,7 @@ from random import *
 
 def make_motif(sz, comp):
     '''Get Cauchy sampled PWM of provided size and complexity from (0, 1].'''
-    arr = np.abs(np.random.standard_cauchy(4 * sz).reshape([sz, 4])) ** (1 / comp)
+    arr = np.abs(np.random.normal(size=4 * sz).reshape([sz, 4])) ** (1 / comp)
     return arr / arr.sum(axis=1)[:, np.newaxis]
 
 def seq(m):
