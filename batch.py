@@ -5,7 +5,10 @@ import signal
 import argparse
 import subprocess
 import multiprocessing
+import pkg_resources
 
+dependencies = [x.strip() for x in open('requirements.txt')]
+pkg_resources.require(dependencies)
 signal.signal(signal.SIGINT, lambda x, y: exit(1))
 dir_path = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser()

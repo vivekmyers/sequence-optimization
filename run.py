@@ -1,6 +1,8 @@
 import matplotlib
 matplotlib.use('Agg')
-import os, argparse
+import os
+import argparse
+import shutil
 import seaborn as sns
 import matplotlib.pyplot as plt
 import importlib
@@ -11,6 +13,7 @@ import torch
 import signal
 import environment.env
 import random
+import time
 sns.set_style('darkgrid')
 signal.signal(signal.SIGINT, lambda x, y: exit(1))
 np.seterr(divide='ignore', invalid='ignore')
@@ -56,13 +59,7 @@ def run_agent(arg):
         validation=args.validation,
         metrics=metrics,
         seed=seed)
-    existing = []
-    try:
-        existing = list(np.load(f'results/{loc}/results.npy', allow_pickle=True))
-    except:
-        pass
-    existing.append(data)
-    np.save(f'results/{loc}/results.npy', existing)
+    np.save(f'results/{loc}/partial/{agent}-{pos}.npy', data)
     return data
 
 
@@ -80,7 +77,16 @@ def process_data(attr, collected):
         results[agent] = np.array([pad(x, n) for x in data]).mean(axis=0)
     make_plot(f'batch={args.batch}, env={args.env}, reps={args.reps}', attr, 
                 [(datum, agent) for agent, datum in results.items()],
-                f'{loc}/{attr}')
+                f'{loc}/plots/{attr}')
+
+
+def get_result(result, timeout):
+    '''Get result from async_result if it completes before timeout.'''
+    if timeout < 1:
+        return None
+    result.wait(timeout=int(timeout))
+    if result.ready() and result.successful():
+        return result.get()
 
 
 if __name__ == '__main__':
@@ -96,8 +102,8 @@ if __name__ == '__main__':
     parser.add_argument('--reps', type=int, default=1, help='number of trials to average')
     parser.add_argument('--name', type=str, default=None, help='output directory')
     parser.add_argument('--cpus', type=int, default=multiprocessing.cpu_count(), help='number of agents to run concurrently')
+    parser.add_argument('--timeout', type=int, default=7200, help='max time to run each agent in seconds')
     parser.add_argument('--seed', type=int, default=None, help='random seed')
-
 
     args = parser.parse_args()
 
@@ -120,19 +126,20 @@ if __name__ == '__main__':
     # Make output directory
     loc = ",".join(args.agents) if args.name is None else args.name
     assert len(loc) > 0
-    try: os.mkdir(f'results/{loc}')
-    except OSError: pass
+    shutil.rmtree(f'results/{loc}', ignore_errors=True)
+    os.mkdir(f'results/{loc}')
+    os.mkdir(f'results/{loc}/partial')
+    os.mkdir(f'results/{loc}/plots')
 
     # Run agents
-    try: os.remove(f'results/{loc}/results.npy')
-    except OSError: pass
-    thunks = [(env, agent, i * args.reps + j, args, 
-                (seed, random.randint(0, (1 << 32) - 1)), loc)
+    thunks = [(env, agent, i * args.reps + j, args, (seed, random.randint(0, (1 << 32) - 1)), loc)
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
     random.shuffle(thunks)
     pool = multiprocessing.Pool(processes=args.cpus, maxtasksperchild=1)
-    collected = [x for x in pool.map(run_agent, thunks, chunksize=1) if x is not None]
+    results = [pool.apply_async(run_agent, [thunk]) for thunk in thunks]
+    end_time = time.time() + args.timeout
+    collected = [x for x in [get_result(result, end_time - time.time()) for result in results] if x is not None]
 
     # Write output
     np.save(f'results/{loc}/results.npy', collected)
