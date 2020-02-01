@@ -43,9 +43,7 @@ def run_job(job):
     for arg in ['batch', 'cutoff', 'validation', 'env', 'reps', 'name', 'cpus', 'seed']:
         val_arg(arg)
 
-    try: os.mkdir(f'results/{job["name"]}')
-    except OSError: pass
-    subprocess.run(args, stderr=open(f'results/{job["name"]}/err.log','w'), stdout=open(f'results/{job["name"]}/out.log', 'w'))
+    subprocess.run(args, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
 pool = multiprocessing.Pool(processes=args.n, maxtasksperchild=1)
 pool.map(run_job, jobs, chunksize=1)
