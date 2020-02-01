@@ -40,7 +40,7 @@ def run_job(job):
     for arg in ['agents', 'metrics']:
         multi_arg(arg)
 
-    for arg in ['batch', 'cutoff', 'validation', 'env', 'reps', 'name', 'cpus', 'seed']:
+    for arg in ['batch', 'cutoff', 'validation', 'env', 'reps', 'name', 'cpus', 'timeout', 'seed']:
         val_arg(arg)
 
     subprocess.run(args, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
