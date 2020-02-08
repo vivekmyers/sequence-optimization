@@ -119,10 +119,15 @@ class FlankEnv(_Env):
 
 class _GenericEnv(_Env):
 
-    def __init__(self, data, batch, validation):
+    def __init__(self, data, header, batch, validation):
         super().__init__(batch, validation)
-        data = pd.read_csv(data, header=None)
-        data = data.values
+        if header:
+            data = pd.read_csv(data, comment='#')[[*header]].values
+        else:
+            data = pd.read_csv(data, comment='#').values
+        data[:, 1] -= data[:, 1].min()
+        data[:, 1] /= data[:, 1].max()
+        assert data.shape[1] == 2
         r = int(len(data) * validation)
         self.env = dict(data[r:])
         self.val = tuple(np.array(x) for x in zip(*data[:r]))
@@ -130,9 +135,10 @@ class _GenericEnv(_Env):
         self.shape = self.encode.shape
 
 
-def GenericEnv(data):
-    '''Parameterized environment built with arbitrary csv [environment sequence, score] data.'''
-    return partial(_GenericEnv, data)
+def GenericEnv(data, header=None):
+    '''Parameterized environment built with arbitrary data taken from the columns
+    header = (sequence column, score column) in the csv file data.'''
+    return partial(_GenericEnv, data, header)
 
 
 class _MotifEnv(_Env):

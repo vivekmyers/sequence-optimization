@@ -19,6 +19,51 @@ signal.signal(signal.SIGINT, lambda x, y: exit(1))
 np.seterr(divide='ignore', invalid='ignore')
 
 
+def run_agent(env, agent, pos, args, seed, loc):
+    '''Run agent in provided environment, with given arguments.
+    env: environment object
+    agent: name of agent
+    pos: unique identifier for run
+    args: arguments to run script
+    seed: seed for run
+    loc: output directory
+    '''
+    if not torch.cuda.is_available() and pos == 0: print('CUDA not available')
+    name = agent + ' ' * (max(map(len, args.agents)) - len(agent))
+    do_run = lambda: env.run(eval(agent, get_agent_modules(), {}), args.cutoff, args.metrics, name, pos)
+    try:
+        random.seed(seed[1])
+        np.random.seed(seed[1])
+        torch.manual_seed(seed[1])
+        if torch.cuda.is_available():
+            with torch.cuda.device(pos % torch.cuda.device_count()):
+                metrics = do_run()
+        else:
+            metrics = do_run()
+    except: 
+        traceback.print_exc()
+        return None
+    data = dict(
+        env=args.env,
+        agent=agent,
+        batch=args.batch,
+        validation=args.validation,
+        metrics=metrics,
+        seed=seed)
+    np.save(f'results/{loc}/partial/{agent}-{pos}.npy', data)
+    return data
+
+
+def get_agent_modules():
+    '''Get dictionary of agent modules.'''
+    files = [f for f in os.listdir('agents') if f.endswith('.py')]
+    agent_modules = {}
+    for f in files :
+        mod = importlib.import_module('agents.' + f[:-3])
+        agent_modules.update(mod.__dict__)
+    return agent_modules
+
+
 def make_plot(title, yaxis, data, loc):
     '''Make a plot of [(Datum, Label)] data and save to given location in results.'''
     plt.figure()
@@ -33,34 +78,6 @@ def make_plot(title, yaxis, data, loc):
     if any([label is not None for _, label in data]):
         plt.legend()
     plt.savefig(f'results/{loc}.png')
-
-
-def run_agent(arg):
-    '''Run agent in provided environment, with given arguments.'''
-    env, agent, pos, args, seed, loc = arg
-    if not torch.cuda.is_available() and pos == 0: print('CUDA not available')
-    name = agent + ' ' * (max(map(len, args.agents)) - len(agent))
-    try:
-        random.seed(seed[1])
-        np.random.seed(seed[1])
-        torch.manual_seed(seed[1])
-        if torch.cuda.is_available():
-            with torch.cuda.device(pos % torch.cuda.device_count()):
-                metrics = env.run(eval(agent, mods, {}), args.cutoff, args.metrics, name, pos)
-        else:
-            metrics = env.run(eval(agent, mods, {}), args.cutoff, args.metrics, name, pos)
-    except: 
-        traceback.print_exc()
-        return None
-    data = dict(
-        env=args.env,
-        agent=agent,
-        batch=args.batch,
-        validation=args.validation,
-        metrics=metrics,
-        seed=seed)
-    np.save(f'results/{loc}/partial/{agent}-{pos}.npy', data)
-    return data
 
 
 def process_data(attr, collected):
@@ -107,21 +124,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Set global random seed
     if args.seed is not None:
         seed = args.seed
     else:
         seed = random.randint(0, (1 << 32) - 1)
     random.seed(seed)
 
+    # Initialize environment
     env = eval(f'{args.env}', environment.env.__dict__, {})(batch=args.batch, validation=args.validation)
-
-    # Load agent modules
-    files = [f for f in os.listdir('agents') if f.endswith('.py')]
-    mods = {}
-
-    for f in files :
-        mod = importlib.import_module('agents.' + f[:-3])
-        mods.update(mod.__dict__)
 
     # Make output directory
     loc = ",".join(args.agents) if args.name is None else args.name
@@ -131,19 +142,25 @@ if __name__ == '__main__':
     os.mkdir(f'results/{loc}/partial')
     os.mkdir(f'results/{loc}/plots')
 
-    # Run agents
-    thunks = [(env, agent, i * args.reps + j, args, (seed, random.randint(0, (1 << 32) - 1)), loc)
+    # Prepare tasks
+    identifier = lambda i, j: i * args.reps + j
+    make_seed = lambda: (seed, random.randint(0, (1 << 32) - 1))
+    thunks = [(env, agent, identifier(i, j), args, make_seed(), loc)
                             for i, agent in enumerate(args.agents)
                             for j in range(args.reps)]
     random.shuffle(thunks)
+
+    # Run agents
     pool = multiprocessing.Pool(processes=args.cpus, maxtasksperchild=1)
-    results = [pool.apply_async(run_agent, [thunk]) for thunk in thunks]
+    results = [pool.apply_async(run_agent, thunk) for thunk in thunks]
     end_time = time.time() + args.timeout
     collected = [x for x in [get_result(result, end_time - time.time()) for result in results] if x is not None]
+    pool.close()
 
     # Write output
     np.save(f'results/{loc}/results.npy', collected)
 
     for metric in args.metrics:
         process_data(metric, collected)
+
 
