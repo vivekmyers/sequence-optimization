@@ -127,6 +127,7 @@ class _GenericEnv(_Env):
             data = pd.read_csv(data, comment='#').values
         data[:, 1] -= data[:, 1].min()
         data[:, 1] /= data[:, 1].max()
+        data[:, 0] = np.vectorize(lambda s: s if s[0] in '+-' else '+' + s)(data[:, 0])
         assert data.shape[1] == 2
         r = int(len(data) * validation)
         self.env = dict(data[r:])
