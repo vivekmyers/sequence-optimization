@@ -88,8 +88,11 @@ class Bucketer:
             sampled_pts = np.array(pts)[sampled_idx]
             sampled_preds = np.array(scores)[sampled_idx]
 
-            # greedily take best predicted sequence in bucket
-            selections.append(sampled_pts[np.argmax(sampled_preds)])
+            # e-greedily take best predicted sequence in bucket
+            if np.random.rand() < self.eps:
+                selections.append(np.random.choice(sampled_pts))
+            else:
+                selections.append(sampled_pts[np.argmax(sampled_preds)])
 
             # remove sequence
             del pts_em[pts.index(selections[-1])]
@@ -101,17 +104,19 @@ class Bucketer:
         return selections
 
     def __init__(self, encoder, dim, shape, alpha=5e-4,
-                    prior=(0.5, 10, 1, 1), k=100, minibatch=100):
+                    prior=(0.5, 10, 1, 1), eps=0., k=100, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
         dim: embedding dimensionality
         prior: (mu0, n0, alpha, beta) prior over gamma and gaussian bucket score distributions.
+        eps: epsilon for greedy maximization step
         k: cluster count or method
         '''
         super().__init__()
         self.X, self.Y = (), ()
         self.embed = Featurizer(encoder, shape, dim=dim, alpha=alpha, minibatch=minibatch)
         self.prior = prior
+        self.eps = eps
         self.k = k
 

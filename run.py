@@ -99,9 +99,8 @@ def process_data(attr, collected):
 
 def get_result(result, timeout):
     '''Get result from async_result if it completes before timeout.'''
-    if timeout < 1:
-        return None
-    result.wait(timeout=int(timeout))
+    if timeout >= 1:
+        result.wait(timeout=int(timeout))
     if result.ready() and result.successful():
         return result.get()
 
