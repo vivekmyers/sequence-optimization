@@ -71,20 +71,24 @@ class Bucketer:
 
         # construct conjugate distributions for each bucket
         taus = [lambda x=x: np.random.gamma(*conj_tau(x)) for x in buckets]
-        distributions = [lambda x=x, tau=tau: np.random.normal(*conj_mu(x, tau()))
+        mu_dists = [lambda x=x, tau=tau: np.random.normal(*conj_mu(x, tau()))
+                            for x, tau in zip(buckets, taus)]
+        sigma_dists = [lambda x=x, tau=tau: conj_mu(x, tau())[1]
                             for x, tau in zip(buckets, taus)]
 
         # select n sequences to return
         selections = []
         pts_buckets = clustering.predict(pts_em) # buckets of all unlabeled sequences
         scores = self.embed.predict(pts) # predicted labels for greedy step
-
+        
         for i in range(n):
 
             # 1. Thompson sample a bucket by sampling from each conjugate dist and taking max
             # 2. get the unlabeled sequences in it and their predictions
-            sampled_idx = np.argmax(np.array([dist() if bucket_idx in pts_buckets else -np.inf
-                        for bucket_idx, dist in enumerate(distributions)])) == pts_buckets
+            dists = sigma_dists if i / n < self.rho else mu_dists
+            samples = np.array([dist() if bucket_idx in pts_buckets else -np.inf
+                                        for bucket_idx, dist in enumerate(dists)])
+            sampled_idx = np.argmax(samples) == pts_buckets
             sampled_pts = np.array(pts)[sampled_idx]
             sampled_preds = np.array(scores)[sampled_idx]
 
@@ -104,13 +108,14 @@ class Bucketer:
         return selections
 
     def __init__(self, encoder, dim, shape, alpha=5e-4,
-                    prior=(0.5, 10, 1, 1), eps=0., k=100, minibatch=100):
+                    prior=(0.5, 10, 1, 1), eps=0., rho=0., k=100, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate.
         shape: sequence shape (len, channels)
         dim: embedding dimensionality
         prior: (mu0, n0, alpha, beta) prior over gamma and gaussian bucket score distributions.
         eps: epsilon for greedy maximization step
+        rho: portion of steps to use inverse gamma conjugate instead of normal gamma
         k: cluster count or method
         '''
         super().__init__()
@@ -118,5 +123,6 @@ class Bucketer:
         self.embed = Featurizer(encoder, shape, dim=dim, alpha=alpha, minibatch=minibatch)
         self.prior = prior
         self.eps = eps
+        self.rho = rho
         self.k = k
 
