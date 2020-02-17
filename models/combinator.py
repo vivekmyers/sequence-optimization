@@ -72,25 +72,23 @@ class Combinator:
 
             return sample
 
-        # construct conjugate distributions for each bucket
-        dists = [conjugate(x) for x in buckets]
+        # sample from conjugate distributions for each bucket
+        dists = [conjugate(x)() for x in buckets]
 
         def start_state():
             '''Return random k-tuple start state for MCMC corresponding to distribution
             of buckets to sample.
             '''
-            idx = [0] + list(1 + np.random.choice(m + k - 1, k - 1, replace=False)) + [m + k]
-            return tuple([idx[i + 1] - idx[i] - 1 for i in range(k)])
+            return tuple(np.random.multinomial(m, [1 / k] * k))
 
         def evaluate(state):
             '''Sample value of state using rho value.'''
-            values = sorted([np.random.normal(*dists[i]()) for i, v in enumerate(state) 
-                                for _ in range(v)], key=lambda x: -x)
-            return sum(values[:int(self.rho * m)])
+            return np.sort(np.stack([np.random.normal(*dists[i], size=self.approx) for i, v in enumerate(state) 
+                        for _ in range(v)]), axis=0)[::-1][:int(self.rho * m), :].sum(axis=0).mean()
 
         def transition(state):
             '''Randomly perturb state for MCMC.'''
-            num = 1 + np.random.poisson(1)
+            num = 1 + np.random.poisson(self.delta)
             new_state = np.array(state)
             for _ in range(num):
                 i, j = np.random.choice(k, 2, replace=False)
@@ -98,26 +96,32 @@ class Combinator:
                     new_state[[i, j]] += [-1, 1]
             return tuple(new_state)
 
-        def mcmc(iters)
+        def mcmc(iters):
             '''Approximate action with highest value sampled from conjugate 
             using the provided number of MCMC iterations.
             '''
             state = start_state()
             score = evaluate(state)
+            best = state
+            best_score = score
             seen = set([state])
             for _ in range(iters):
                 next_state = transition(state)
                 if next_state in seen:
                     continue
                 next_score = evaluate(next_state)
-                if next_score > score:
+                if next_score > score or np.random.random() < np.exp((next_score - score) / self.temp):
                     state, score = next_state, next_score
                     seen.add(state)
+                    if score > best_score:
+                        best = state
+                        best_score = score
+            return best
 
         # get distribution of sequences to sample across buckets with MCMC 
         # approximation of Thompson sampling
         final_state = mcmc(self.iters)
-        action = sum([[i] * v for i, v in enumerate(final_state)])
+        action = [i for i, v in enumerate(final_state) for _ in range(v)]
         selections = []
         pts_buckets = clustering.predict(pts_em) # buckets of all unlabeled sequences
         scores = self.embed.predict(pts) # predicted labels for greedy step
@@ -125,8 +129,6 @@ class Combinator:
         # select sequences from buckets
         for bucket_idx in action:
 
-            # 1. Thompson sample a bucket by sampling from each conjugate dist and taking max
-            # 2. get the unlabeled sequences in it and their predictions
             sampled_idx = bucket_idx == pts_buckets
             sampled_pts = np.array(pts)[sampled_idx]
             sampled_preds = np.array(scores)[sampled_idx]
@@ -147,7 +149,7 @@ class Combinator:
         return selections
 
     def __init__(self, encoder, dim, shape, alpha=5e-4, prior=(0.5, 10, 1, 1), eps=0., 
-                        rho=1.0, k=100, iters=1000, minibatch=100):
+                        rho=1.0, k=100, iters=10000, approx=100, temp=1, delta=1, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate
         shape: sequence shape (len, channels)
@@ -157,6 +159,9 @@ class Combinator:
         rho: top portion of sequences to evaluate for MCMC step (should correspond to metric)
         k: cluster count or method
         iters: iterations for MCMC optimization
+        approx: iterations for approximating expectations
+        delta: poisson parameter for change with each MCMC step
+        temp: MCMC temperature
         '''
         super().__init__()
         self.X, self.Y = (), ()
@@ -166,4 +171,7 @@ class Combinator:
         self.rho = rho
         self.k = k
         self.iters = iters
+        self.approx = approx
+        self.delta = delta
+        self.temp = temp
 
