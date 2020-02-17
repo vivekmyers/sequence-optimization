@@ -65,8 +65,8 @@ class Bucketer:
             '''
             n = len(x)
             if n == 0: return mu0, np.sqrt(1 / (n0 * tau))
-            mu = (n * tau * x.mean() + n0 * tau * mu0) / (n * tau + n0 * tau)
-            prec = n * tau + n0 * tau
+            mu = (n * x.mean() + n0 * mu0) / (n + n0)
+            prec = (n + n0) * tau
             return mu, np.sqrt(1 / prec)
 
         # construct conjugate distributions for each bucket
