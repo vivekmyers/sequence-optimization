@@ -24,6 +24,61 @@ class Combinator:
         self.Y = scores[:]
         self.embed.fit(self.X, self.Y, epochs)
 
+    def _sample_action(self, m, k, conj_dists):
+        '''Sample from conjugates over buckets, then approximate bucket distribution maximizing metric
+        induced by rho with MCMC.
+        '''
+        # sample from conjugate distributions for each bucket
+        samples = [dist() for dist in conj_dists]
+
+        def start_state():
+            '''Return random k-tuple start state for MCMC corresponding to random distribution of
+            buckets to sample from.
+            '''
+            return tuple(np.random.multinomial(m, [1 / k] * k))
+            #idx = np.argmax(np.array([mu for mu, sigma in samples]))
+            #return tuple(idx * [0] + [m] + (k - idx - 1) * [0])
+
+        def evaluate(state):
+            '''Sample value of state using rho value.'''
+            return np.sort(np.concatenate([np.random.normal(*samples[i], size=(v, self.approx)) 
+                for i, v in enumerate(state)], axis=0), axis=0)[::-1][:int(self.rho * m), :].sum(axis=0).mean()
+
+        def transition(state):
+            '''Randomly perturb state for MCMC.'''
+            num = 1 + np.random.poisson(self.delta)
+            new_state = np.array(state)
+            for _ in range(num):
+                i, j = np.random.choice(k, 2, replace=False)
+                if new_state[i] > 0:
+                    new_state[[i, j]] += [-1, 1]
+            return tuple(new_state)
+
+        def mcmc(iters):
+            '''Approximate action with highest value sampled from conjugate 
+            using the provided number of MCMC iterations.
+            '''
+            state = start_state()
+            score = evaluate(state)
+            best = state
+            best_score = score
+            seen = set([state])
+            for _ in range(iters):
+                next_state = transition(state)
+                if next_state in seen:
+                    continue
+                next_score = evaluate(next_state)
+                if next_score > score or np.random.random() < np.exp((next_score - score) / self.temp):
+                    state, score = next_state, next_score
+                    seen.add(state)
+                    if score > best_score:
+                        best = state
+                        best_score = score
+            return best
+
+        return mcmc(self.iters)
+
+
     def sample(self, pts, m):
         '''Thompson sample sequences.
         pts: sequences to sample from
@@ -50,12 +105,11 @@ class Combinator:
            buckets[idx].append(val)
         buckets = list(map(np.array, buckets))
 
-        mu0, n0, alpha, beta = self.prior # unpack prior parameters
-
         def conjugate(x):
             '''Returns conjugate distribution over mean mu and standard deviation
             sigma in provided bucket x.
             '''
+            mu0, n0, alpha, beta = self.prior # unpack prior parameters
             n = len(x)
             mu = x.mean() if n else mu0
             a = alpha + n / 2
@@ -72,63 +126,19 @@ class Combinator:
 
             return sample
 
-        # sample from conjugate distributions for each bucket
-        dists = [conjugate(x)() for x in buckets]
+        # construct conjugate distributions
+        conj_dists = [conjugate(x) for x in buckets]
 
-        def start_state():
-            '''Return random k-tuple start state for MCMC corresponding to distribution
-            of buckets to sample.
-            '''
-            return tuple(np.random.multinomial(m, [1 / k] * k))
-
-        def evaluate(state):
-            '''Sample value of state using rho value.'''
-            return np.sort(np.stack([np.random.normal(*dists[i], size=self.approx) for i, v in enumerate(state) 
-                        for _ in range(v)]), axis=0)[::-1][:int(self.rho * m), :].sum(axis=0).mean()
-
-        def transition(state):
-            '''Randomly perturb state for MCMC.'''
-            num = 1 + np.random.poisson(self.delta)
-            new_state = np.array(state)
-            for _ in range(num):
-                i, j = np.random.choice(k, 2, replace=False)
-                if new_state[i] > 0 and new_state[j] < k:
-                    new_state[[i, j]] += [-1, 1]
-            return tuple(new_state)
-
-        def mcmc(iters):
-            '''Approximate action with highest value sampled from conjugate 
-            using the provided number of MCMC iterations.
-            '''
-            state = start_state()
-            score = evaluate(state)
-            best = state
-            best_score = score
-            seen = set([state])
-            for _ in range(iters):
-                next_state = transition(state)
-                if next_state in seen:
-                    continue
-                next_score = evaluate(next_state)
-                if next_score > score or np.random.random() < np.exp((next_score - score) / self.temp):
-                    state, score = next_state, next_score
-                    seen.add(state)
-                    if score > best_score:
-                        best = state
-                        best_score = score
-            return best
-
-        # get distribution of sequences to sample across buckets with MCMC 
-        # approximation of Thompson sampling
-        final_state = mcmc(self.iters)
-        action = [i for i, v in enumerate(final_state) for _ in range(v)]
+        # select m sequences for batch, sampling from the best bucket distribution given a fixed sample
+        # from the conjugate distributions for each sequence
         selections = []
         pts_buckets = clustering.predict(pts_em) # buckets of all unlabeled sequences
         scores = self.embed.predict(pts) # predicted labels for greedy step
-        
-        # select sequences from buckets
-        for bucket_idx in action:
 
+        for _ in range(m):
+            # sample bucket randomly from sampled bucket distribution given fixed sample from conjugates
+            bucket_dist = np.array(self._sample_action(m, k, conj_dists))
+            bucket_idx = np.random.choice(k, p=bucket_dist / bucket_dist.sum())
             sampled_idx = bucket_idx == pts_buckets
             sampled_pts = np.array(pts)[sampled_idx]
             sampled_preds = np.array(scores)[sampled_idx]
@@ -149,7 +159,7 @@ class Combinator:
         return selections
 
     def __init__(self, encoder, dim, shape, alpha=5e-4, prior=(0.5, 10, 1, 1), eps=0., 
-                        rho=1.0, k=100, iters=10000, approx=100, temp=1, delta=1, minibatch=100):
+                        rho=1.0, k=100, iters=1000, approx=100, temp=1, delta=1, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate
         shape: sequence shape (len, channels)
