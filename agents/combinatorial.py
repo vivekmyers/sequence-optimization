@@ -6,7 +6,7 @@ from models.auto_cnn import CNN
 import utils.mcmc
 
 
-def CombinatorialAgent(epochs=30, dim=5, k=1., prior=(0.5, 10, 1, 1), eps=0., rho=1.0):
+def CombinatorialAgent(epochs=30, dim=5, k=1., prior=(0., 10, 1, 1), eps=0., rho=1.0):
     '''Constructs agent that buckets sequences with autoencoder embedding, then
     uses MCMC to approximate Thompson sampling over all possible distributions 
     of buckets to sample to maximize a metric which evaluates a portion of

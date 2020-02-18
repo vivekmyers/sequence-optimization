@@ -35,9 +35,8 @@ class Combinator:
             '''Return random k-tuple start state for MCMC corresponding to random distribution of
             buckets to sample from.
             '''
-            return tuple(np.random.multinomial(m, [1 / k] * k))
-            #idx = np.argmax(np.array([mu for mu, sigma in samples]))
-            #return tuple(idx * [0] + [m] + (k - idx - 1) * [0])
+            idx = np.argmax(np.array([mu for mu, sigma in samples]))
+            return tuple(idx * [0] + [m] + (k - idx - 1) * [0])
 
         def evaluate(state):
             '''Sample value of state using rho value.'''
@@ -138,6 +137,9 @@ class Combinator:
         for _ in range(m):
             # sample bucket randomly from sampled bucket distribution given fixed sample from conjugates
             bucket_dist = np.array(self._sample_action(m, k, conj_dists))
+            for i in range(k):
+                if i not in pts_buckets:
+                    bucket_dist[i] = 0
             bucket_idx = np.random.choice(k, p=bucket_dist / bucket_dist.sum())
             sampled_idx = bucket_idx == pts_buckets
             sampled_pts = np.array(pts)[sampled_idx]
@@ -158,8 +160,8 @@ class Combinator:
 
         return selections
 
-    def __init__(self, encoder, dim, shape, alpha=5e-4, prior=(0.5, 10, 1, 1), eps=0., 
-                        rho=1.0, k=100, iters=1000, approx=100, temp=1, delta=1, minibatch=100):
+    def __init__(self, encoder, dim, shape, alpha=5e-4, prior=(0., 10, 1, 1), eps=0., 
+                        rho=1.0, k=100, iters=1000, approx=200, temp=0.01, delta=1, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate
         shape: sequence shape (len, channels)
