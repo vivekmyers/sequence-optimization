@@ -36,6 +36,8 @@ class Combinator:
             buckets to sample from.
             '''
             return tuple(np.random.multinomial(m, [1 / k] * k))
+            #idx = np.argmax(np.array([mu for mu, sigma in samples]))
+            #return tuple(idx * [0] + [m] + (k - idx - 1) * [0])
 
         def evaluate(state):
             '''Sample value of state using rho value.'''
