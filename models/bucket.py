@@ -49,32 +49,31 @@ class Bucketer:
 
         mu0, n0, alpha, beta = self.prior # unpack prior parameters
 
-        def conj_tau(x): 
-            '''Returns a, b where the conjugate distribution of tau
-            given x is Ga(a, b).
+        def conjugate(x):
+            '''Returns conjugate distribution over mean mu and standard deviation of mu
+            fixing sample from gamma distribution.
             '''
-            if len(x) == 0: return alpha, 1 / beta
-            a = alpha + len(x) / 2
-            b0 = beta + 1 / 2 * ((x - x.mean()) ** 2).sum()
-            b1 = len(x) * n0 * (x.mean() - mu0) ** 2 / (2 * (len(x) + n0))
-            return a, 1 / (b0 + b1)
-
-        def conj_mu(x, tau):
-            '''Returns mu', sigma' where the conjugate distribution of
-            mu given x, tau is N(mu', sigma').
-            '''
+            mu0, n0, alpha, beta = self.prior # unpack prior parameters
             n = len(x)
-            if n == 0: return mu0, np.sqrt(1 / (n0 * tau))
-            mu = (n * x.mean() + n0 * mu0) / (n + n0)
-            prec = (n + n0) * tau
-            return mu, np.sqrt(1 / prec)
+            mu = x.mean() if n else mu0
+            a = alpha + n / 2
+            b0 = beta + 1 / 2 * ((x - mu) ** 2).sum()
+            b1 = n * n0 * (mu - mu0) ** 2 / (2 * (n + n0))
+            b = 1 / (b0 + b1)
+            mu_exp = (n * mu + n0 * mu0) / (n + n0)
+            mu_var_scale = 1 / (n + n0)
+
+            def sample():
+                tau = np.random.gamma(a, b)
+                mu_var = mu_var_scale / tau
+                return np.random.normal(mu_exp, np.sqrt(mu_var)), mu_var
+
+            return sample
 
         # construct conjugate distributions for each bucket
-        taus = [lambda x=x: np.random.gamma(*conj_tau(x)) for x in buckets]
-        mu_dists = [lambda x=x, tau=tau: np.random.normal(*conj_mu(x, tau()))
-                            for x, tau in zip(buckets, taus)]
-        sigma_dists = [lambda x=x, tau=tau: conj_mu(x, tau())[1]
-                            for x, tau in zip(buckets, taus)]
+        conj_dists = [conjugate(x) for x in buckets]
+        mu_dists = [lambda: dist()[0] for dist in conj_dists]
+        sigma_dists = [lambda: dist()[1] for dist in conj_dists]
 
         # select n sequences to return
         selections = []
