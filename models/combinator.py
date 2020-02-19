@@ -162,7 +162,7 @@ class Combinator:
 
         return selections
 
-    def __init__(self, encoder, dim, shape, alpha=5e-4, prior=(0., 10, 1, 1), eps=0., 
+    def __init__(self, encoder, dim, shape, alpha=5e-4, prior=(0.5, 10, 1, 1), eps=0., 
                         rho=1.0, k=100, iters=1000, approx=200, temp=0.01, delta=1, minibatch=100):
         '''encoder: convert sequences to one-hot arrays.
         alpha: embedding learning rate
