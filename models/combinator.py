@@ -140,6 +140,8 @@ class Combinator:
             for i in range(k):
                 if i not in pts_buckets:
                     bucket_dist[i] = 0
+            if (bucket_dist == 0).all():
+                bucket_dist[np.random.choice(pts_buckets)] = m
             bucket_idx = np.random.choice(k, p=bucket_dist / bucket_dist.sum())
             sampled_idx = bucket_idx == pts_buckets
             sampled_pts = np.array(pts)[sampled_idx]
