@@ -48,7 +48,7 @@ class _Env:
                 del agent
                 gc.collect()
                 torch.cuda.empty_cache()
-                return tuple(map(np.array, [corrs, reward, regret, elapsed]))
+                return {metric: np.array(result) for metric, result in results.items()}
 
             for metric, f in evaluators:
                 results[metric].append(f(seen, data, sampled))
