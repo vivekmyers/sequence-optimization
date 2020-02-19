@@ -72,8 +72,8 @@ class Bucketer:
 
         # construct conjugate distributions for each bucket
         conj_dists = [conjugate(x) for x in buckets]
-        mu_dists = [lambda: dist()[0] for dist in conj_dists]
-        sigma_dists = [lambda: dist()[1] for dist in conj_dists]
+        mu_dists = [lambda dist=dist: dist()[0] for dist in conj_dists]
+        sigma_dists = [lambda dist=dist: dist()[1] for dist in conj_dists]
 
         # select n sequences to return
         selections = []
