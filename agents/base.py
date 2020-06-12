@@ -12,7 +12,7 @@ class BaseAgent:
         self.batch = batch
         self.encode = encode
         self.shape = shape
-        self.observe(prior)
+        self.seen = {**prior}
     
     def act(self, data):
         '''Return batch of sequences to try.'''
