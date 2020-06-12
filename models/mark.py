@@ -8,8 +8,8 @@ from abc import ABC, abstractmethod
 import utils.model
 
 
-class Embedding:
-    '''Base class for generating embeddings from sequences.'''
+class MarkEmbedding:
+    '''Embedding with marker sequence penalization term.'''
 
     def make_model(self, shape, dim):
 
@@ -47,7 +47,7 @@ class Embedding:
     def fit(self, seqs, scores, epochs, markers):
         '''Refit embedding with labeled sequences.'''
         self.model.train()
-        markers = torch.tensor([[self.encode(x)] for x in markers]).to(self.device)
+        markers = np.array([[self.encode(x)] for x in markers])
         D = list(zip([self.encode(x) for x in seqs], scores))
         M = len(D) // self.minibatch + bool(len(D) % self.minibatch)
         for ep in range(epochs):
@@ -55,14 +55,14 @@ class Embedding:
             for mb in range(M):
                 X, Y = map(lambda t: torch.tensor(t).to(self.device), 
                             zip(*D[mb * self.minibatch : (mb + 1) * self.minibatch]))
-                mark_a = np.random.choice(markers)
-                rem = list(markers[:])
-                rem.remove(mark_a)
-                mark_b = np.random.choice(rem)
+                idx_a, idx_b = sample(list(range(len(markers))), 2)
+                mark_a = markers[idx_a]
+                mark_b = markers[idx_b]
                 loss = torch.mean((Y - self.model(X.float())) ** 2) \
                         + self.lam * self.model.l2() \
                         + torch.clamp(self.clip - \
-                            torch.norm(self.model.embed(mark_a) - self.model.embed(mark_b), 2), min=0)
+                            torch.norm(self.model.embed(torch.tensor(mark_a).float().to(self.device)) \
+                            - self.model.embed(torch.tensor(mark_b).float().to(self.device)), 2), min=0)
                 self.opt.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.model.parameters(), 1)
@@ -82,7 +82,7 @@ class Embedding:
                 torch.tensor([self.encode(seq) for seq in seqs])
                 .float().to(self.device)).detach().cpu().numpy()
 
-    def __init__(self, encoder, dim, shape=(), alpha=1e-3, lam=0, clip=0.2, minibatch=100):
+    def __init__(self, encoder, dim, shape, alpha=1e-3, lam=0, clip=0.2, minibatch=100):
         '''Embeds sequences encoded by encoder with learning rate alpha and l2 regularization lambda,
         fitting a function from embedding of dimension dim to the labels. Markers are moved at least
         clip apart when training.
