@@ -16,6 +16,10 @@ e.g. `python run.py --agents 'RandomAgent(epochs=10)' 'GreedyAgent(epochs=10)' -
 
 `--cutoff [N]`: limit to N batches.
 
+`--pretrain`: use pretraining data.
+
+`--nocorr`: compute no prediction correlations.
+
 # Gym
 Install OpenAI gym:
 

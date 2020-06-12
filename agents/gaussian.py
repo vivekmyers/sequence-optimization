@@ -6,7 +6,7 @@ from models.auto_cnn import CNN
 import utils.mcmc
 
 
-def GaussianAgent(epochs=30, dim=5, k=1., beta=1.):
+def GaussianAgent(epochs=30, initial_epochs=None, dim=5, k=1., beta=1.):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a deep kernel gaussian process regression.
     dim: embedding dimension.
@@ -14,14 +14,19 @@ def GaussianAgent(epochs=30, dim=5, k=1., beta=1.):
     k: scaling of batch by which to oversample, and then find representative
         maximally-separated subset with mcmc.
     '''
+    if initial_epochs is None:
+        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs)):
+    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.k = k
             self.model = GaussianProcess(encoder=self.encode, dim=dim, shape=self.shape)
             self.beta = beta
+            
+            if len(self.prior):
+                self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             t = 1 + len(self.seen) // self.batch

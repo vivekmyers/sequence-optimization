@@ -27,12 +27,12 @@ class _Env:
         to its evaluation at each timestep. The name and pos parameters are 
         used for a progress bar.
         '''
-        data = self.env.copy()
+        data, prior = self.split_data()
         if cutoff is None:
             cutoff = 1 + len(data) // self.batch
         pbar = tqdm(total=min(len(data) // self.batch * self.batch, cutoff * self.batch), 
                         position=pos, desc=name)
-        agent = Agent(self.shape, self.batch, self.encode)
+        agent = Agent(prior, self.shape, self.batch, self.encode)
         iteration = 0
         seen = {}
         evaluators = [(metric, eval(metric, environment.metrics.__dict__, {})()) for metric in metrics]
@@ -63,7 +63,17 @@ class _Env:
         pbar.close()
         return {metric: np.array(result) for metric, result in results.items()}
 
-    def __init__(self, batch, validation):
+    def split_data(self):
+        '''Splits the environment run dictionary self.env into an observed prior portion
+        and an observed data portion. Returns data, prior partitioning self.env so 
+        len(prior) == self.pretrain.
+        '''
+        assert self.pretrain < len(self.env), "not enough data to pretrain"
+        items = list(self.env.items())
+        shuffle(items)
+        return dict(items[:-self.pretrain]), dict(items[-self.pretrain:])
+
+    def __init__(self, batch, validation, pretrain):
         '''Initialize environment.
         batch: number of sequences selected per action
         validation: portion of sequences to save for validation
@@ -78,13 +88,14 @@ class _Env:
         self.batch = batch
         self.validation = validation
         self.cache = {}
+        self.pretrain = pretrain
 
 
 class GuideEnv(_Env):
     '''CRISPR guide environment with on-target labels.'''
 
-    def __init__(self, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         files=[f'data/DeepCRISPR/{f}' for f in os.listdir('data/DeepCRISPR') if f.endswith('.csv')]
         dfs = list(map(pd.read_csv, files))
         data = [(strand + seq, score) for df in dfs
@@ -103,8 +114,8 @@ class GuideEnv(_Env):
 class FlankEnv(_Env):
     '''Simpler environment using flanking sequences.'''
 
-    def __init__(self, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         df = pickle.load(open('data/flanking_sequences/cbf1_reward_df.pkl', 'rb'))
         data = [*zip([f'+{x}' for x in df.index], df.values)]
         shuffle(data)
@@ -119,8 +130,8 @@ class FlankEnv(_Env):
 
 class _GenericEnv(_Env):
 
-    def __init__(self, data, header, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, data, header, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         if header:
             data = pd.read_csv(data, comment='#')[[*header]].values
         else:
@@ -144,8 +155,8 @@ def GenericEnv(data, header=None):
 
 class _MotifEnv(_Env):
 
-    def __init__(self, N, lam, comp, var, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, N, lam, comp, var, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         self.N = N
         self.lam = lam
         self.comp = comp
@@ -176,8 +187,8 @@ def MotifEnv(N=100, lam=1., comp=0.5, var=0.5):
 
 class _ClusterEnv(_Env):
 
-    def __init__(self, N, comp, var, dlen, padding, zclust, skew, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, N, comp, var, dlen, padding, zclust, skew, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         self.encode = environment.featurize.SeqEncoder(20)
         self.shape = self.encode.shape
         self.dlen = dlen
@@ -229,8 +240,8 @@ def ClusterEnv(N=100, comp=0.5, var=0.5, dlen=30000, padding=0, zclust=0, skew=1
 
 class _ProteinEnv(_Env):
     
-    def __init__(self, source, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, source, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         base_seq = open(f'data/MaveDB/seqs/{source}.txt').read().strip()
         df = pd.read_csv(f'data/MaveDB/scores/{source}.csv.gz', delimiter=r',', engine='python', compression='gzip')
         data = [(x, y) for x, y in zip(df.hgvs_pro.values, 1 / (1 + np.exp(-df.score.values))) if not np.isnan(y)]
@@ -251,8 +262,8 @@ def ProteinEnv(source):
 
 class _PrimerEnv(_Env):
 
-    def __init__(self, mer, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, mer, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         df = pd.read_csv('data/primers/primers.txt', delimiter='\t')
         xcol = {None: 'probe', 20: 'probe_20mer', 30: 'probe_30mer'}
         assert mer in xcol, 'valid options are {None, 20, 30}'
@@ -275,8 +286,8 @@ def PrimerEnv(mer=None):
 class MPRAEnv(_Env):
     '''MPRA sequences scored by average expression.'''
 
-    def __init__(self, batch, validation):
-        super().__init__(batch, validation)
+    def __init__(self, batch, validation, pretrain):
+        super().__init__(batch, validation, pretrain)
         files = ['data/MPRA/mpra_endo_scramble.txt',
                  'data/MPRA/mpra_endo_tss_lb.txt',
                  'data/MPRA/mpra_peak_tile.txt']

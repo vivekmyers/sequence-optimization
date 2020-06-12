@@ -6,11 +6,13 @@ import environment.featurize
 class BaseAgent:
     '''Template for agent classes.'''
 
-    def __init__(self, shape, batch, encode):
+    def __init__(self, prior, shape, batch, encode):
         self.seen = {}
+        self.prior = prior
         self.batch = batch
         self.encode = encode
         self.shape = shape
+        self.observe(prior)
     
     def act(self, data):
         '''Return batch of sequences to try.'''

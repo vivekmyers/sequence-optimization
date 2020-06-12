@@ -6,7 +6,7 @@ from models.auto_cnn import CNN
 import utils.mcmc
 
 
-def BucketAgent(epochs=30, dim=5, k=1., prior=(0.5, 10, 1, 1), eps=0., rho=0.):
+def BucketAgent(epochs=30, initial_epochs=None, dim=5, k=1., prior=(0.5, 10, 1, 1), eps=0., rho=0.):
     '''Constructs agent that buckets sequences with autoencoder embedding, then
     uses Thompson sampling to select between buckets in batches.
     dim: embedding shape
@@ -16,12 +16,16 @@ def BucketAgent(epochs=30, dim=5, k=1., prior=(0.5, 10, 1, 1), eps=0., rho=0.):
     eps: e-greedy epsilon parameter for greedy maximization step
     rho: portion of thompson sampling steps on which to maximize information
     '''
+    if initial_epochs is None:
+        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs)):
+    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.model = Bucketer(encoder=self.encode, dim=dim, shape=self.shape, k=k, prior=prior, eps=eps, rho=rho)
+            if len(self.prior):
+                self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             return self.model.sample(seqs, self.batch)

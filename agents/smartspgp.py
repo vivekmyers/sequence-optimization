@@ -6,7 +6,7 @@ from models.auto_cnn import CNN
 import utils.mcmc
 
 
-def SmartSparseGaussianAgent(epochs=30, dim=5, beta=0.02, k=1., M=1000):
+def SmartSparseGaussianAgent(epochs=30, initial_epochs=None, dim=5, beta=0.02, k=1., M=1000):
     '''Constructs agent that uses batch version of GP-UCB algorithm to sample
     sequences with a deep kernel sparse gaussian process regression. Uses
     autoencoder for mu value prediction.
@@ -15,13 +15,17 @@ def SmartSparseGaussianAgent(epochs=30, dim=5, beta=0.02, k=1., M=1000):
     k: scaling of batch by which to oversample, and then find representative
         maximally-separated subset with mcmc.
     '''
+    if initial_epochs is None:
+        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs)):
+    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.model = SparseGaussianProcess(encoder=self.encode, dim=dim, shape=self.shape, 
                                                 beta=beta, M=M)
+            if len(self.prior):
+                self.model.embed.fit(*zip(*self.prior.items()), epochs=initial_epochs) 
         
         def act(self, seqs):
             choices = []

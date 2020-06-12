@@ -4,16 +4,20 @@ import agents.random
 from models.auto_cnn import CNN
 
 
-def GreedyAgent(epochs=30):
+def GreedyAgent(epochs=30, initial_epochs=None):
     '''Constructs agent with CNN to predict sequence values that trains with each observation.
     Greedily selects sequences with best predicions.
     '''
+    if initial_epochs is None:
+        initial_epochs = epochs // 4
 
-    class Agent(agents.random.RandomAgent(epochs)):
+    class Agent(agents.random.RandomAgent(epochs, initial_epochs)):
 
         def __init__(self, *args):
             super().__init__(*args)
             self.model = CNN(encoder=self.encode, shape=self.shape)
+            if len(self.prior):
+                self.model.fit(*zip(*self.prior.items()), epochs=initial_epochs)
         
         def act(self, seqs):
             return list(zip(*sorted(zip(self.model.predict(seqs), seqs))[-self.batch:]))[1]

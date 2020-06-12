@@ -112,6 +112,7 @@ if __name__ == '__main__':
     parser.add_argument('--agents', nargs='+', type=str, help='agent classes to use', required=True)
     parser.add_argument('--metrics', nargs='+', type=str, help='metrics to evaluate at each timestep', required=True)
     parser.add_argument('--batch', type=int, default=100, help='batch size')
+    parser.add_argument('--pretrain', type=int, default=0, help='number of pretraining data points')
     parser.add_argument('--cutoff', type=int, default=None, help='max number of batches to run')
     parser.add_argument('--validation', type=float, default=0.2, help='validation data portion')
     parser.add_argument('--env', type=str, default='GuideEnv', help='environment to run agents')
@@ -131,7 +132,7 @@ if __name__ == '__main__':
     random.seed(seed)
 
     # Initialize environment
-    env = eval(f'{args.env}', environment.env.__dict__, {})(batch=args.batch, validation=args.validation)
+    env = eval(f'{args.env}', environment.env.__dict__, {})(batch=args.batch, validation=args.validation, pretrain=args.pretrain)
 
     # Make output directory
     loc = ",".join(args.agents) if args.name is None else args.name
