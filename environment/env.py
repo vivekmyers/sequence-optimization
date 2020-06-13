@@ -32,10 +32,10 @@ class _Env:
             cutoff = 1 + len(data) // self.batch
         pbar = tqdm(total=min(len(data) // self.batch * self.batch, cutoff * self.batch), 
                         position=pos, desc=name)
-        agent = Agent(prior, self.shape, self.batch, self.encode)
         iteration = 0
-        seen = {}
-        evaluators = [(metric, eval(metric, environment.metrics.__dict__, {})()) for metric in metrics]
+        seen = prior.copy()
+        evaluators = [(metric, eval(metric, environment.metrics.__dict__, {})(prior)) for metric in metrics]
+        agent = Agent(prior, self.shape, self.batch, self.encode)
         results = {metric: [] for metric, f in evaluators}
 
         while len(data) >= self.batch and (cutoff is None or iteration < cutoff):
