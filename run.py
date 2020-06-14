@@ -48,6 +48,8 @@ def run_agent(env, agent, pos, args, seed, loc):
         agent=agent,
         batch=args.batch,
         validation=args.validation,
+        cutoff=args.cutoff,
+        pretrain=args.pretrain,
         metrics=metrics,
         seed=seed)
     np.save(f'results/{loc}/partial/{agent}-{pos}.npy', data)
