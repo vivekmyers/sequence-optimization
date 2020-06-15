@@ -5,6 +5,7 @@ import torch
 from torch import nn
 import torch.functional as F
 from models.mark import MarkEmbedding
+from models.featurizer import Featurizer
 from sklearn.cluster import KMeans, AffinityPropagation
 from sklearn.metrics import silhouette_score
 
@@ -25,6 +26,7 @@ class Marker:
             if self.seen[self.markers[m]] < y:
                 self.markers[m] = x
         self.embed.fit(self.X, self.Y, epochs, self.markers)
+        self.pred.fit(self.X, self.Y, epochs)
 
     def _closest(self, X):
         return np.argmin(np.linalg.norm(self.embed(self.markers)[None, :, :] - self.embed(X)[:, None, :], axis=2), axis=1)
@@ -79,7 +81,7 @@ class Marker:
 
         # select n sequences to return
         selections = []
-        scores = [self.embed.predict(vals) for vals in unseen]
+        scores = [self.pred.predict(vals) for vals in unseen]
         valid = [i for i in range(self.k) if len(unseen[i])]
         
         for i in range(n):
@@ -113,7 +115,8 @@ class Marker:
         k: cluster count or method
         '''
         super().__init__()
-        self.embed = MarkEmbedding(encoder=encoder, shape=shape, dim=dim, alpha=alpha, minibatch=minibatch)
+        self.embed = MarkEmbedding(encoder=encoder, shape=shape, dim=dim, minibatch=minibatch)
+        self.pred = Featurizer(encoder=encoder, shape=shape, dim=dim, alpha=alpha, minibatch=minibatch)
         X, Y = map(np.array, zip(*[x for x in init.items()]))
         self.X = X[:]
         self.Y = Y[:]
@@ -141,5 +144,6 @@ class Marker:
             Y_pos = np.delete(Y_pos, idx)
         
         self.embed.fit(X, Y, epochs, self.markers)
+        self.pred.fit(X, Y, epochs)
 
 
