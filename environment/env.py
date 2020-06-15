@@ -71,7 +71,7 @@ class _Env:
         assert self.pretrain < len(self.env), "not enough data to pretrain"
         items = list(self.env.items())
         shuffle(items)
-        return dict(items[:-self.pretrain]), dict(items[-self.pretrain:])
+        return dict(items[:len(items)-self.pretrain]), dict(items[len(items)-self.pretrain:])
 
     def __init__(self, batch, validation, pretrain):
         '''Initialize environment.
